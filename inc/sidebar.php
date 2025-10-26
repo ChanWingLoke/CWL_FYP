@@ -125,42 +125,6 @@
             </a>
           </li> -->
 
-          <!-- Sales
-          <li class="nav-item has-treeview">
-            <a href="#" class="nav-link <?php 
-              if ($actual_link == 'quick_sell' || $actual_link =='sell_list' || $actual_link =='sell_return_list') {echo "active";
-          }else{
-            echo "";
-          }
-            ?>">
-              <i class="material-symbols-outlined">sell</i>
-              <p>
-                Sells
-                <i class="right fas fa-angle-left"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="index.php?page=quick_sell" class="nav-link <?php echo $actual_link=='quick_sell'?'active':'';?>">
-                  
-                  <p>New sell</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="index.php?page=sell_list" class="nav-link <?php echo $actual_link=='sell_list'?'active':'';?>">
-                  
-                  <p>Sell list</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="index.php?page=sell_return_list" class="nav-link <?php echo $actual_link=='sell_return_list'?'active':'';?>">
-                  
-                  <p>Sell return list</p>
-                </a>
-              </li>
-            </ul>
-          </li> -->
-
           <!-- Expense -->
           <li class="nav-item has-treeview">
             <a href="#" class="nav-link <?php 
@@ -286,12 +250,6 @@
                 </a>
               </li>
               <li class="nav-item">
-                <a href="index.php?page=sales_report" class="nav-link <?php echo $actual_link=='sales_report'?'active':'';?>">
-                 
-                  <p>Sales report</p>
-                </a>
-              </li>
-              <li class="nav-item">
                 <a href="index.php?page=purchase_report" class="nav-link <?php echo $actual_link=='purchase_report'?'active':'';?>">
                   
                   <p>Purchase report</p>
@@ -301,12 +259,6 @@
                 <a href="index.php?page=purchase_pay_report" class="nav-link <?php echo $actual_link=='purchase_pay_report'?'active':'';?>">
                   
                   <p>Purchase payment report</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="index.php?page=sell_pay_report" class="nav-link <?php echo $actual_link=='sell_pay_report'?'active':'';?>">
-                  
-                  <p>Sell payment report</p>
                 </a>
               </li>
             </ul>
