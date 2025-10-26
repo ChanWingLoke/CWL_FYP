@@ -159,7 +159,6 @@ try {
                 <span class="badge-status rejected">Rejected</span>
                 <span class="badge-status returned">Returned</span>
               </div>
-
             </div>
             <div class="card-body">
               <div id="calendar"></div>
@@ -263,30 +262,39 @@ try {
                   </select>
                 </div>
 
+                <!-- DATEPICKER RANGE (mini calendar, YYYY-MM-DD) -->
                 <div class="form-group">
                   <label>Date</label>
-                  <div class="d-flex">
-                    <input type="text"
-                           name="start_time"
-                           id="start_time"
-                           class="form-control mr-2"
-                           placeholder="Start (yyyy-mm-dd)"
-                           inputmode="numeric"
-                           pattern="^\d{4}-\d{2}-\d{2}$"
-                           title="Use format YYYY-MM-DD, e.g. 2025-06-07"
-                           required>
-
-                    <input type="text"
-                           name="end_time"
-                           id="end_time"
-                           class="form-control"
-                           placeholder="End (yyyy-mm-dd)"
-                           inputmode="numeric"
-                           pattern="^\d{4}-\d{2}-\d{2}$"
-                           title="Use format YYYY-MM-DD, e.g. 2025-06-08"
-                           required>
+                  <div class="input-daterange input-group" id="bookingDatepicker">
+                    <input
+                      type="text"
+                      name="start_time"
+                      id="start_time"
+                      class="form-control datepicker"
+                      placeholder="YYYY-MM-DD"
+                      inputmode="numeric"
+                      pattern="^\d{4}-\d{2}-\d{2}$"
+                      title="Use format YYYY-MM-DD"
+                      autocomplete="off"
+                      required
+                    >
+                    <div class="input-group-append input-group-prepend">
+                      <span class="input-group-text">to</span>
+                    </div>
+                    <input
+                      type="text"
+                      name="end_time"
+                      id="end_time"
+                      class="form-control datepicker"
+                      placeholder="YYYY-MM-DD"
+                      inputmode="numeric"
+                      pattern="^\d{4}-\d{2}-\d{2}$"
+                      title="Use format YYYY-MM-DD"
+                      autocomplete="off"
+                      required
+                    >
                   </div>
-                  <small class="text-muted">Format: <code>YYYY-MM-DD</code> (e.g. 2025-06-07)</small>
+                  <small class="text-muted">Format: <code>YYYY-MM-DD</code></small>
                 </div>
 
                 <div class="form-group">
@@ -322,34 +330,66 @@ try {
 .badge-status.returned { background-color: #6c757d; } /* grey */
 </style>
 
-
 <!-- FullCalendar CSS/JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
-<!-- Minimal calendar init (no events feed for now) -->
+<!-- Calendar init (loads events from your PHP endpoint) -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var el = document.getElementById('calendar');
-  if (!el) { return; }
+  if (!el) return;
   if (!window.FullCalendar) {
-    el.innerHTML = '<div class="text-danger">FullCalendar script not loaded. Check your network or use local files.</div>';
+    el.innerHTML = '<div class="text-danger">FullCalendar script not loaded.</div>';
     return;
   }
-  try {
-    var calendar = new FullCalendar.Calendar(el, {
-      initialView: 'dayGridMonth',
-      height: 'auto',
-      headerToolbar: {
-        left: 'prev,next today',
-        center: 'title',
-        right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
-      },
-      events: [] // keep simple, as before
+  var calendar = new FullCalendar.Calendar(el, {
+    initialView: 'dayGridMonth',
+    height: 'auto',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+    },
+    events: {
+      url: 'app/action/booking_events.php',
+      extraParams: { status: 'approved' },
+      failure: function() {
+        el.insertAdjacentHTML('beforeend','<div class="text-danger mt-2">Could not load bookings.</div>');
+      }
+    }
+  });
+  calendar.render();
+});
+</script>
+
+<!-- jQuery-safe initializer (Select2 + Datepicker just like Warranty) -->
+<script>
+window.addEventListener('load', function () {
+  if (!window.jQuery) return;
+
+  // Select2, if present
+  if ($.fn.select2) {
+    $('.select2').select2();
+  }
+
+  // Datepickers (YYYY-MM-DD) with simple range constraints
+  if ($.fn.datepicker) {
+    $('.datepicker').datepicker('destroy').datepicker({
+      format: 'yyyy-mm-dd',
+      autoclose: true,
+      todayHighlight: true
     });
-    calendar.render();
-  } catch (e) {
-    el.innerHTML = '<div class="text-danger">Calendar failed to render: ' + (e.message || e) + '</div>';
+
+    $('#start_time').on('changeDate', function (e) {
+      $('#end_time').datepicker('setStartDate', e.date);
+      var s = $('#start_time').val();
+      var eVal = $('#end_time').val();
+      if (eVal && eVal < s) { $('#end_time').val(''); }
+    });
+    $('#end_time').on('changeDate', function (e) {
+      $('#start_time').datepicker('setEndDate', e.date);
+    });
   }
 });
 </script>
