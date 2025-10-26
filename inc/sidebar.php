@@ -106,16 +106,6 @@
             </a>
           </li>
 
-          <!-- Customer -->
-          <li class="nav-item">
-            <a href="index.php?page=member" class="nav-link <?php echo $actual_link=='member'?'active':'';?>">
-              <i class="material-symbols-outlined">supervisor_account</i>
-              <p>
-                Customer
-              </p>
-            </a>
-          </li>
-
           <!-- Supplier -->
            <li class="nav-item">
             <a href="index.php?page=suppliar" class="nav-link <?php echo $actual_link=='suppliar'?'active':'';?>">
@@ -351,7 +341,6 @@
   </aside>
 
     </div>
-    <?php require_once 'inc/member_add_modal.php'; ?>
     <?php require_once 'inc/catagory_modal.php'; ?>
     <?php require_once 'inc/suppliar_modal.php'; ?>
     <?php require_once 'inc/expense_catagory_modal.php'; ?>
