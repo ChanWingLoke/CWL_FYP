@@ -153,12 +153,13 @@ try {
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title mb-0"><b>Bookings Calendar</b></h3>
-              <div class="small">
-                <span class="badge" style="background:#f39c12">Pending</span>
-                <span class="badge" style="background:#28a745">Approved</span>
-                <span class="badge" style="background:#dc3545">Rejected</span>
-                <span class="badge" style="background:#6c757d">Returned</span>
+              <div class="status-legend">
+                <span class="badge-status pending">Pending</span>
+                <span class="badge-status approved">Approved</span>
+                <span class="badge-status rejected">Rejected</span>
+                <span class="badge-status returned">Returned</span>
               </div>
+
             </div>
             <div class="card-body">
               <div id="calendar"></div>
@@ -303,6 +304,24 @@ try {
     </div>
   </section>
 </div>
+
+<style>
+.badge-status {
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  margin-right: 6px;
+  display: inline-block;
+  vertical-align: middle;
+  color: #fff !important;
+}
+.badge-status.pending  { background-color: #f39c12; } /* orange */
+.badge-status.approved { background-color: #28a745; } /* green */
+.badge-status.rejected { background-color: #dc3545; } /* red */
+.badge-status.returned { background-color: #6c757d; } /* grey */
+</style>
+
 
 <!-- FullCalendar CSS/JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css">

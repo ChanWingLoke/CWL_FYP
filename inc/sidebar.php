@@ -90,7 +90,7 @@
             <ul class="nav nav-treeview">
               <li class="nav-item">
                 <a href="index.php?page=bookings" class="nav-link <?= ($current === 'bookings') ? 'active' : '' ?>">
-                  <p>New Booking / Calendar</p>
+                  <p>New Booking</p>
                 </a>
               </li>
               <li class="nav-item">

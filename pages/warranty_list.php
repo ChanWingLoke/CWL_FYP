@@ -4,7 +4,7 @@
 // Require login
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 
-// Admin-only guard (don’t exit; return so footer runs & preloader hides)
+// Admin-only (don’t exit; return so footer runs & preloader hides)
 $isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
 if (!$isAdmin) {
   ?>
@@ -34,7 +34,7 @@ if (!$db) {
        </div></section></div>');
 }
 
-// Detect assets table
+// Detect assets table (your project uses `products`)
 $productTable = 'product';
 try { $db->query("SELECT 1 FROM `product` LIMIT 1"); }
 catch (Throwable $e) {
@@ -44,12 +44,12 @@ catch (Throwable $e) {
   }
 }
 
-// Optional: normalize expired status in DB (cheap)
+// Normalize expired status (optional)
 try {
   $db->exec("UPDATE warranties SET warranty_status='expired' WHERE end_date < CURDATE() AND warranty_status <> 'expired'");
 } catch (Throwable $e) { /* ignore */ }
 
-// Server-side filter (keep existing behavior)
+// Top server-side filter tabs
 $filter = strtolower($_GET['filter'] ?? 'active'); // active | expired | all
 $where = '1=1';
 if ($filter === 'active') {
@@ -109,9 +109,12 @@ function badgeClass($status) {
       <!-- Top: Server-side filter buttons + Add -->
       <div class="mb-3 d-flex justify-content-between flex-wrap">
         <div class="mb-2">
-          <a href="index.php?page=warranty_list&filter=active" class="btn btn-<?= $filter==='active'?'success':'outline-success' ?> btn-sm mr-1">Active</a>
-          <a href="index.php?page=warranty_list&filter=expired" class="btn btn-<?= $filter==='expired'?'danger':'outline-danger' ?> btn-sm mr-1">Expired</a>
-          <a href="index.php?page=warranty_list&filter=all" class="btn btn-<?= $filter==='all'?'secondary':'outline-secondary' ?> btn-sm">All</a>
+          <a href="index.php?page=warranty_list&filter=active"
+            class="btn btn-filter btn-sm mr-1 <?= $filter==='active'?'btn-success active':'btn-outline-success' ?>">Active</a>
+          <a href="index.php?page=warranty_list&filter=expired"
+            class="btn btn-filter btn-sm mr-1 <?= $filter==='expired'?'btn-danger active':'btn-outline-danger' ?>">Expired</a>
+          <a href="index.php?page=warranty_list&filter=all"
+            class="btn btn-filter btn-sm <?= $filter==='all'?'btn-secondary active':'btn-outline-secondary' ?>">All</a>
         </div>
 
         <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#warrantyModal">
@@ -119,40 +122,40 @@ function badgeClass($status) {
         </button>
       </div>
 
-      <!-- NEW: Client-side quick filter bar -->
-    <div class="card mb-2">
+      <!-- Client-side quick filter bar -->
+      <div class="card mb-2">
         <div class="card-body py-2">
-            <div class="form-row align-items-end">
-                <div class="form-group col-md-3 mb-2">
-                    <label class="mb-1">Asset</label>
-                    <select id="fltAsset" class="form-control select2">
-                        <option value="">All assets</option>
-                        <?php foreach ($assets as $a): ?>
-                            <option value="<?= htmlspecialchars($a['product_name']) ?>"><?= htmlspecialchars($a['product_name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="form-group col-md-3 mb-2">
-                    <label class="mb-1">Vendor</label>
-                    <input type="text" id="fltVendor" class="form-control" placeholder="Search vendor">
-                </div>
-                <div class="form-group col-md-2 mb-2">
-                    <label class="mb-1">End date (from)</label>
-                    <input type="text" id="fltEndFrom" class="form-control datepicker" placeholder="YYYY-MM-DD" inputmode="numeric">
-                </div>
-                <div class="form-group col-md-2 mb-2">
-                    <label class="mb-1">End date (to)</label>
-                    <input type="text" id="fltEndTo" class="form-control datepicker" placeholder="YYYY-MM-DD" inputmode="numeric">
-                </div>
-                <div class="form-group col-md-2 mb-2 d-flex">
-                    <button id="fltApply" type="button" class="btn btn-primary mr-2 flex-fill">Search</button>
-                    <button id="fltClear" type="button" class="btn btn-outline-secondary flex-fill">Clear</button>
-                </div>
+          <div class="form-row align-items-end">
+            <div class="form-group col-md-3 mb-2">
+              <label class="mb-1">Asset</label>
+              <select id="fltAsset" class="form-control select2">
+                <option value="">All assets</option>
+                <?php foreach ($assets as $a): ?>
+                  <option value="<?= htmlspecialchars($a['product_name']) ?>"><?= htmlspecialchars($a['product_name']) ?></option>
+                <?php endforeach; ?>
+              </select>
             </div>
+            <div class="form-group col-md-3 mb-2">
+              <label class="mb-1">Vendor</label>
+              <input type="text" id="fltVendor" class="form-control" placeholder="Search vendor">
+            </div>
+            <div class="form-group col-md-2 mb-2">
+              <label class="mb-1">End date (from)</label>
+              <input type="text" id="fltEndFrom" class="form-control datepicker" placeholder="YYYY-MM-DD" inputmode="numeric">
+            </div>
+            <div class="form-group col-md-2 mb-2">
+              <label class="mb-1">End date (to)</label>
+              <input type="text" id="fltEndTo" class="form-control datepicker" placeholder="YYYY-MM-DD" inputmode="numeric">
+            </div>
+            <div class="form-group col-md-2 mb-2 d-flex">
+              <button id="fltApply" class="btn btn-primary mr-2 flex-fill">Search</button>
+              <button id="fltClear" class="btn btn-outline-secondary flex-fill">Clear</button>
+            </div>
+          </div>
         </div>
-    </div>
+      </div>
 
-
+      <!-- Table -->
       <div class="card">
         <div class="card-header d-flex align-items-center">
           <h3 class="card-title mb-0"><b><?= ucfirst($filter) ?> Warranties</b></h3>
@@ -277,90 +280,160 @@ function badgeClass($status) {
   </div>
 </div>
 
+<style>
+/* Consistent filter button styling like Loans */
+.btn-filter {
+  font-weight: 600;
+  font-size: 14px !important;
+  line-height: 1.3 !important;
+  padding: 6px 14px !important;
+  border-width: 2px !important;
+  transition: all 0.15s ease;
+  min-width: 90px; /* optional: keep them uniform width */
+  text-align: center;
+}
+
+.btn-filter:hover {
+  opacity: 0.9;
+}
+
+/* Outline states */
+.btn-outline-success.btn-filter {
+  color: #198754 !important;
+  border-color: #198754 !important;
+  background: transparent !important;
+}
+.btn-outline-danger.btn-filter {
+  color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  background: transparent !important;
+}
+.btn-outline-secondary.btn-filter {
+  color: #6c757d !important;
+  border-color: #6c757d !important;
+  background: transparent !important;
+}
+
+/* Active (filled) states */
+.btn-success.btn-filter.active,
+.btn-success.btn-filter {
+  background-color: #198754 !important;
+  border-color: #198754 !important;
+  color: #fff !important;
+}
+
+.btn-danger.btn-filter.active,
+.btn-danger.btn-filter {
+  background-color: #dc3545 !important;
+  border-color: #dc3545 !important;
+  color: #fff !important;
+}
+
+.btn-secondary.btn-filter.active,
+.btn-secondary.btn-filter {
+  background-color: #6c757d !important;
+  border-color: #6c757d !important;
+  color: #fff !important;
+}
+</style>
+
 <script>
 window.addEventListener('load', function () {
-  // At this point footer scripts (including jQuery) are loaded
-  (function($){
-    // --- Plugins ---
-    if ($.fn.select2) { $('.select2').select2(); }
-    if ($.fn.datepicker) { $('.datepicker').datepicker({ format: 'yyyy-mm-dd', autoclose: true, todayHighlight: true }); }
+  (function ($) {
 
-    // --- Get or create the DataTable once ---
-    var table = $.fn.dataTable.isDataTable('#warrantyTable')
-      ? $('#warrantyTable').DataTable()
-      : $('#warrantyTable').DataTable({
-          pageLength: 25,
-          order: [[4, 'asc']] // End Date column
-        });
+    // --- Select2 ---
+    if ($.fn.select2) { $('.select2').select2({ width: '100%' }); }
 
-    // --- Globals for date range filter (End Date col index 4) ---
-    window.__wEndMin = '';
-    window.__wEndMax = '';
-
-    function warrantyEndRange(settings, data){
-      if (settings.nTable.id !== 'warrantyTable') return true;
-      var min = window.__wEndMin || '';
-      var max = window.__wEndMax || '';
-      if (!min && !max) return true;
-
-      var end = (data[4] || '').trim(); // YYYY-MM-DD
-      if (!end) return false;
-
-      if (min && end < min) return false;
-      if (max && end > max) return false;
-      return true;
-    }
-
-    // Remove any previous copy, then add once
-    $.fn.dataTable.ext.search = $.fn.dataTable.ext.search.filter(function(fn){
-      return fn.name !== 'warrantyEndRange';
+    // --- Datepickers (keep "today" highlight) ---
+    var $dp = $('#fltEndFrom, #fltEndTo, .datepicker');
+    $dp.each(function () {
+      var $i = $(this);
+      if ($i.data('datepicker')) return;
+      $i.datepicker({
+        format: 'yyyy-mm-dd',
+        autoclose: true,
+        todayHighlight: true,
+        orientation: 'bottom auto',
+        container: 'body'
+      }).on('changeDate', function () {
+        $(this).datepicker('hide');
+        $(this).datepicker('update');
+      });
     });
-    $.fn.dataTable.ext.search.push(warrantyEndRange);
+    $('<style>.datepicker.dropdown-menu{z-index:2050!important;}</style>').appendTo('head');
 
-    // Delegated click handlers (robust)
-    $(document).on('click', '#fltApply', function(e){
+    // --- DataTable ---
+    var table = $('#warrantyTable').DataTable({
+      pageLength: 25,
+      order: [[4, 'asc']]
+    });
+
+    // --- Custom Range Filter (End Date) ---
+    var endMin = '', endMax = '';
+    $.fn.dataTable.ext.search.push(function (settings, data) {
+      if (settings.nTable.id !== 'warrantyTable') return true;
+      if (!endMin && !endMax) return true;
+      var end = (data[4] || '').trim(); // End column text (YYYY-MM-DD)
+      if (!end) return false;
+      if (endMin && end < endMin) return false;
+      if (endMax && end > endMax) return false;
+      return true;
+    });
+
+    // --- Apply Filters ---
+    $('#fltApply').on('click', function (e) {
       e.preventDefault();
-      console.log('[Warranty] Search clicked');
-
       var asset  = ($('#fltAsset').val() || '').trim();
       var vendor = ($('#fltVendor').val() || '').trim();
-      window.__wEndMin = ($('#fltEndFrom').val() || '').trim();
-      window.__wEndMax = ($('#fltEndTo').val()   || '').trim();
+      endMin     = ($('#fltEndFrom').val() || '').trim();
+      endMax     = ($('#fltEndTo').val() || '').trim();
 
-      console.log('[Warranty] Filters -> asset:', asset, 'vendor:', vendor, 'min:', __wEndMin, 'max:', __wEndMax);
-
-      // Asset exact match (column 1)
       if (asset) {
         var rx = '^' + $.fn.dataTable.util.escapeRegex(asset) + '$';
         table.column(1).search(rx, true, false);
       } else {
         table.column(1).search('');
       }
-
-      // Vendor contains (column 2)
       table.column(2).search(vendor);
-
       table.draw();
     });
 
-    $(document).on('click', '#fltClear', function(e){
+    // --- Clear Filters ---
+    $('#fltClear').on('click', function (e) {
       e.preventDefault();
-      console.log('[Warranty] Clear clicked');
-
       $('#fltAsset').val('').trigger('change');
       $('#fltVendor').val('');
       $('#fltEndFrom').val('');
       $('#fltEndTo').val('');
-      window.__wEndMin = window.__wEndMax = '';
-
+      endMin = endMax = '';
       table.search('').columns().search('');
       table.draw();
     });
+
+    // --- Modal: Add/Edit fill ---
+    $('#warrantyModal').on('show.bs.modal', function (ev) {
+      var btn = $(ev.relatedTarget);
+      var id   = btn.data('id') || '';
+      var asset= btn.data('asset') || '';
+      var vend = btn.data('vendor') || '';
+      var start= btn.data('start') || '';
+      var end  = btn.data('end') || '';
+
+      $(this).find('.modal-title').text(id ? 'Edit Warranty' : 'Add Warranty');
+      $('#w_id').val(id);
+      $('#w_asset').val(asset).trigger('change');
+      $('#w_vendor').val(vend);
+      $('#w_start').val(start);
+      $('#w_end').val(end);
+    }).on('hidden.bs.modal', function(){
+      // reset form on close
+      $('#w_id').val('');
+      $('#w_asset').val('').trigger('change');
+      $('#w_vendor').val('');
+      $('#w_start').val('');
+      $('#w_end').val('');
+    });
+
   })(jQuery);
 });
 </script>
-
-
-
-
-
