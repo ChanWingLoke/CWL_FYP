@@ -69,6 +69,14 @@
               </li>             
              </ul>
           </li>
+
+          <!-- Warranty -->
+          <li class="nav-item">
+            <a href="index.php?page=warranty_list" class="nav-link <?= ($current === 'warranty_list') ? 'active' : '' ?>">
+              <i class="material-symbols-outlined">verified</i>
+              <p>Warranty</p>
+            </a>
+          </li>
           
           <!-- Bookings -->
           <li class="nav-item has-treeview <?= in_array($current, ['bookings','bookings_requests','bookings_all']) ? 'menu-open' : '' ?>">

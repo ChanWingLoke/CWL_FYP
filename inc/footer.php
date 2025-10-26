@@ -32,7 +32,9 @@
 <!-- select 2 js  -->
 <script src="plugins/select2/js/select2.min.js"></script>
 <!-- PAGE SCRIPTS -->
-<script src="dist/js/pages/dashboard2.js"></script>
+<?php if (isset($current) && $current === 'dashboard'): ?>
+  <script src="dist/js/pages/dashboard2.js"></script>
+<?php endif; ?>
 <script src="assets/js/custom.js"></script>
 <script src="assets/js/ajax_req.js"></script>
 
@@ -51,10 +53,22 @@
    });
 </script>
 
-<!-- datepicker -->
+<!-- datepicker (global defaults) -->
 <script>
- $('.datepicker').datepicker();
+  if ($.fn.datepicker) {
+    // Set global defaults for ALL datepickers
+    $.fn.datepicker.defaults.format = 'yyyy-mm-dd';
+    $.fn.datepicker.defaults.autoclose = true;
+    $.fn.datepicker.defaults.todayHighlight = true;
+    $.fn.datepicker.defaults.orientation = 'bottom';
+  }
+
+  // Initialize any datepicker fields on the page
+  $(function(){
+    $('.datepicker').datepicker();
+  });
 </script>
+
 
 
 <!-- google translate -->
