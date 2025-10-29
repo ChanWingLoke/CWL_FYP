@@ -6,7 +6,7 @@
 <!-- REQUIRED SCRIPTS -->
 <!-- jQuery -->
 <script
-  src="http://code.jquery.com/jquery-3.4.1.min.js"></script>
+  src="http://code.jquery.com/jquery-3.6.0.min.js"></script>
 <!-- Bootstrap -->
 <script src="plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
 <!-- overlayScrollbars -->

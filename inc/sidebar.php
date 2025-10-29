@@ -77,6 +77,34 @@
               <p>Warranty</p>
             </a>
           </li>
+
+          <!-- Maintenance -->
+           <li class="nav-item has-treeview">
+              <a href="#" class="nav-link <?= in_array($current, ['maintenance_list','maintenance_requests','maintenance_calendar']) ? 'active' : '' ?>">
+                <i class="material-symbols-outlined">build</i>
+                <p>
+                  Maintenance
+                  <i class="right fas fa-angle-left"></i>
+                </p>
+              </a>
+              <ul class="nav nav-treeview">
+                <li class="nav-item">
+                  <a href="index.php?page=maintenance_requests" class="nav-link <?= ($current==='maintenance_requests')?'active':'' ?>">
+                    <p>Requests</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="index.php?page=maintenance_list" class="nav-link <?= ($current==='maintenance_list')?'active':'' ?>">
+                    <p>All</p>
+                  </a>
+                </li>
+                <li class="nav-item">
+                  <a href="index.php?page=maintenance_calendar" class="nav-link <?= ($current==='maintenance_calendar')?'active':'' ?>">
+                    <p>Calendar</p>
+                  </a>
+                </li>
+              </ul>
+            </li>
           
           <!-- Bookings -->
           <li class="nav-item has-treeview <?= in_array($current, ['bookings','bookings_requests','bookings_all']) ? 'menu-open' : '' ?>">
