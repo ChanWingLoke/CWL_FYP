@@ -1,20 +1,31 @@
 <?php
 // pages/maintenance_list.php
 
-// Require login
-if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
-
-// Get PDO
-$db = null;
-if (isset($pdo) && $pdo) { $db = $pdo; }
-elseif (isset($obj) && isset($obj->pdo)) { $db = $obj->pdo; }
-if (!$db) {
-  die('<div class="content-wrapper"><section class="content"><div class="container-fluid">
-       <div class="alert alert-danger mt-3">Database connection not found.</div>
-       </div></section></div>');
+// ------------------------------------------------------------------
+// Require login (adjust to your app’s guard as needed)
+// ------------------------------------------------------------------
+if (!isset($_SESSION['user_id'])) {
+  header('Location: login.php'); exit;
 }
 
-// Detect product table name (product | products | items | assets)
+// ------------------------------------------------------------------
+// Get PDO from app bootstrap
+// ------------------------------------------------------------------
+$db = null;
+if (isset($pdo) && $pdo) {
+  $db = $pdo;
+} elseif (isset($obj) && isset($obj->pdo)) {
+  $db = $obj->pdo;
+}
+if (!$db) {
+  die('<div class="content-wrapper"><section class="content"><div class="container-fluid">
+        <div class="alert alert-danger mt-3">Database connection not found.</div>
+      </div></section></div>');
+}
+
+// ------------------------------------------------------------------
+// Detect your product/assets table name dynamically
+// ------------------------------------------------------------------
 $productTable = 'product';
 try { $db->query("SELECT 1 FROM `product` LIMIT 1"); }
 catch (Throwable $e) {
@@ -24,47 +35,108 @@ catch (Throwable $e) {
   }
 }
 
-// Tabs / filter
-$validStatuses = ['open','in_progress','waiting_parts','resolved','closed','all'];
-$filter = strtolower($_GET['filter'] ?? 'open');
-if (!in_array($filter, $validStatuses, true)) $filter = 'open';
+// ------------------------------------------------------------------
+// Tab / status filter
+// Tabs: open | in_progress | waiting_parts | resolved | closed | all
+// ------------------------------------------------------------------
+$tab = strtolower($_GET['tab'] ?? 'open');
 
 $where = '1=1';
 $params = [];
-if ($filter !== 'all') {
-  $where = 'mo.status = :st';
-  $params[':st'] = $filter;
+
+switch ($tab) {
+  case 'open':
+    $where = "mo.status = 'open'";
+    break;
+  case 'in_progress':
+    $where = "mo.status = 'in_progress'";
+    break;
+  case 'waiting_parts':
+    $where = "mo.status = 'waiting_parts'";
+    break;
+  case 'resolved':
+    $where = "mo.status = 'resolved'";
+    break;
+  case 'closed':
+    $where = "mo.status = 'closed'";
+    break;
+  case 'all':
+  default:
+    $where = '1=1';
+    break;
 }
 
-// Query list (note: requested_by + assigned_to + product name)
+// ------------------------------------------------------------------
+// QUERY
+// IMPORTANT: we alias requested_by→reported_by and requested_date→reported_at
+// so the rest of the template can stay consistent.
+// ------------------------------------------------------------------
 $sql = "
   SELECT
-    mo.id, mo.asset_id, mo.title, mo.description, mo.priority, mo.status,
-    mo.requested_by, mo.assigned_to, mo.requested_date, mo.due_date, mo.resolved_date,
-    p.product_name AS asset_name,
-    ru.username    AS requested_by_name,
-    au.username    AS assigned_to_name
+    mo.id,
+    mo.asset_id,
+    mo.title,
+    mo.description,
+    mo.priority,
+    mo.status,
+    mo.requested_by   AS reported_by,   -- alias
+    mo.assigned_to,
+    mo.requested_date AS reported_at,   -- alias
+    mo.due_date,
+    p.product_name    AS asset_name,
+    u1.username       AS reported_name, -- who requested
+    u2.username       AS assigned_name  -- who it’s assigned to
   FROM maintenance_orders mo
   JOIN `{$productTable}` p ON p.id = mo.asset_id
-  LEFT JOIN user ru ON ru.id = mo.requested_by
-  LEFT JOIN user au ON au.id = mo.assigned_to
+  LEFT JOIN user u1 ON u1.id = mo.requested_by
+  LEFT JOIN user u2 ON u2.id = mo.assigned_to
   WHERE {$where}
-  ORDER BY mo.created_at DESC, mo.id DESC
+  ORDER BY mo.requested_date DESC, mo.id DESC
 ";
+
 $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-function badge($s) {
-  $map = [
-    'open'          => 'badge-primary',
+// Users list for assignment dropdown (optional)
+$users = [];
+try {
+  $users = $db->query("SELECT id, username FROM user ORDER BY username ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) { /* ignore */ }
+
+function priorityBadge($p) {
+  $p = strtolower((string)$p);
+  $label = ucfirst($p ?: '-');
+  $cls = [
+    'low'    => 'badge-success',
+    'medium' => 'badge-primary',
+    'high'   => 'badge-warning',
+    'urgent' => 'badge-danger',
+  ][$p] ?? 'badge-secondary';
+  return '<span class="badge '.$cls.'">'.htmlspecialchars($label).'</span>';
+}
+
+function statusBadge($s) {
+  $s = strtolower((string)$s);
+  $label = [
+    'open'          => 'Open',
+    'in_progress'   => 'In Progress',
+    'waiting_parts' => 'Waiting Parts',
+    'resolved'      => 'Resolved',
+    'closed'        => 'Closed',
+  ][$s] ?? ucfirst($s ?: 'Open');
+
+  $cls = [
+    'open'          => 'badge-secondary',
     'in_progress'   => 'badge-info',
     'waiting_parts' => 'badge-warning',
     'resolved'      => 'badge-success',
-    'closed'        => 'badge-secondary',
-  ];
-  return $map[$s] ?? 'badge-light';
+    'closed'        => 'badge-dark',
+  ][$s] ?? 'badge-secondary';
+
+  return '<span class="badge '.$cls.'">'.htmlspecialchars($label).'</span>';
 }
+
 ?>
 <div class="content-wrapper">
   <div class="content-header">
@@ -77,25 +149,28 @@ function badge($s) {
         </ol>
       </div>
 
+      <!-- Tabs -->
       <div class="mb-3">
-        <a class="btn btn-<?= $filter==='open'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&filter=open">Open</a>
-        <a class="btn btn-<?= $filter==='in_progress'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&filter=in_progress">In Progress</a>
-        <a class="btn btn-<?= $filter==='waiting_parts'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&filter=waiting_parts">Waiting Parts</a>
-        <a class="btn btn-<?= $filter==='resolved'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&filter=resolved">Resolved</a>
-        <a class="btn btn-<?= $filter==='closed'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&filter=closed">Closed</a>
-        <a class="btn btn-<?= $filter==='all'?'secondary':'outline-secondary' ?> btn-sm" href="index.php?page=maintenance_list&filter=all">All</a>
+        <a class="btn btn-<?= $tab==='open'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=open">Open</a>
+        <a class="btn btn-<?= $tab==='in_progress'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=in_progress">In Progress</a>
+        <a class="btn btn-<?= $tab==='waiting_parts'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=waiting_parts">Waiting Parts</a>
+        <a class="btn btn-<?= $tab==='resolved'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=resolved">Resolved</a>
+        <a class="btn btn-<?= $tab==='closed'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=closed">Closed</a>
+        <a class="btn btn-<?= $tab==='all'?'secondary':'outline-secondary' ?> btn-sm" href="index.php?page=maintenance_list&tab=all">All</a>
 
-        <button class="btn btn-success btn-sm float-right" data-toggle="modal" data-target="#maintModal">
+        <a class="btn btn-success btn-sm float-right" href="index.php?page=maintenance_request">
           <i class="fas fa-plus"></i> New Request
-        </button>
+        </a>
       </div>
     </div>
   </div>
 
   <section class="content">
     <div class="container-fluid">
+
       <div class="card">
-        <div class="card-header"><b><?= ucfirst(str_replace('_',' ', $filter)) ?> Tickets</b></div>
+        <div class="card-header"><b><?= ucfirst(str_replace('_',' ', $tab)) ?> Requests</b></div>
+
         <div class="card-body p-0">
           <div class="table-responsive">
             <table class="table table-striped mb-0" id="maintTable">
@@ -105,117 +180,73 @@ function badge($s) {
                   <th>Asset</th>
                   <th>Title</th>
                   <th>Priority</th>
-                  <th>Status</th>
-                  <th>Requested by</th>
-                  <th>Assigned to</th>
-                  <th>Requested</th>
+                  <th>Reported By</th>
+                  <th>Assigned</th>
+                  <th>Reported</th>
                   <th>Due</th>
+                  <th>Status</th>
+                  <th class="text-right">Actions</th>
                 </tr>
               </thead>
               <tbody>
-              <?php if ($rows): foreach ($rows as $i => $r): ?>
+              <?php if ($rows): foreach ($rows as $i => $row): ?>
+                <?php
+                  $reportedBy = $row['reported_name'] ?? '-';
+                  $reportedAt = !empty($row['reported_at'])
+                      ? date('Y-m-d', strtotime($row['reported_at']))
+                      : '-';
+                  $dueOn = !empty($row['due_date'])
+                      ? date('Y-m-d', strtotime($row['due_date']))
+                      : '-';
+                  $assigned = $row['assigned_name'] ?? '-';
+                ?>
                 <tr>
                   <td><?= $i+1 ?></td>
-                  <td><?= htmlspecialchars($r['asset_name']) ?></td>
-                  <td><?= htmlspecialchars($r['title']) ?></td>
-                  <td><?= ucfirst($r['priority']) ?></td>
-                  <td><span class="badge <?= badge($r['status']) ?>"><?= ucfirst(str_replace('_',' ',$r['status'])) ?></span></td>
-                  <td><?= htmlspecialchars($r['requested_by_name'] ?? '-') ?></td>
-                  <td><?= htmlspecialchars($r['assigned_to_name'] ?? '-') ?></td>
-                  <td><?= htmlspecialchars($r['requested_date']) ?></td>
-                  <td><?= htmlspecialchars($r['due_date'] ?? '-') ?></td>
+                  <td><?= htmlspecialchars($row['asset_name']) ?></td>
+                  <td><?= htmlspecialchars($row['title'] ?? '-') ?></td>
+                  <td><?= priorityBadge($row['priority']) ?></td>
+                  <td><?= htmlspecialchars($reportedBy) ?></td>
+                  <td><?= htmlspecialchars($assigned) ?></td>
+                  <td><?= htmlspecialchars($reportedAt) ?></td>
+                  <td><?= htmlspecialchars($dueOn) ?></td>
+                  <td><?= statusBadge($row['status']) ?></td>
+                  <td class="text-right">
+                    <!-- Example actions (wire these to your handlers if needed) -->
+                    <div class="btn-group btn-group-sm" role="group">
+                      <form action="app/action/maintenance_update.php" method="post" class="d-inline">
+                        <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
+                        <input type="hidden" name="action" value="start">
+                        <button class="btn btn-info">Start</button>
+                      </form>
+                      <form action="app/action/maintenance_update.php" method="post" class="d-inline" onsubmit="return confirm('Close this request?');">
+                        <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
+                        <input type="hidden" name="action" value="close">
+                        <button class="btn btn-secondary">Close</button>
+                      </form>
+                    </div>
+                  </td>
                 </tr>
               <?php endforeach; else: ?>
-                <tr><td colspan="9" class="text-center text-muted">No tickets found.</td></tr>
+                <tr><td colspan="10" class="text-center text-muted">No requests found.</td></tr>
               <?php endif; ?>
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
     </div>
   </section>
 </div>
 
-<!-- Create Modal -->
-<div class="modal fade" id="maintModal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-md modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <div class="modal-header py-2">
-        <h5 class="modal-title">New Maintenance Request</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
-                style="outline:none;border:0;background:transparent;font-size:28px;line-height:1;">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <form action="app/action/maintenance_save.php" method="post" autocomplete="off">
-        <div class="modal-body">
-          <div class="form-group">
-            <label>Asset</label>
-            <select name="asset_id" class="form-control select2" required>
-              <option value="">Select asset</option>
-              <?php
-              $assets = $db->query("SELECT id, product_name FROM `{$productTable}` ORDER BY product_name")->fetchAll(PDO::FETCH_ASSOC);
-              foreach ($assets as $a) {
-                echo '<option value="'.(int)$a['id'].'">'.htmlspecialchars($a['product_name']).'</option>';
-              }
-              ?>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Title</label>
-            <input type="text" name="title" class="form-control" required>
-          </div>
-          <div class="form-group">
-            <label>Description</label>
-            <textarea name="description" class="form-control" rows="3"></textarea>
-          </div>
-          <div class="form-group">
-            <label>Priority</label>
-            <select name="priority" class="form-control">
-              <option value="low">Low</option>
-              <option value="medium" selected>Medium</option>
-              <option value="high">High</option>
-              <option value="critical">Critical</option>
-            </select>
-          </div>
-          <div class="form-row">
-            <div class="form-group col-md-6">
-              <label>Requested date</label>
-              <input type="text" name="requested_date" class="form-control datepicker" placeholder="YYYY-MM-DD" required>
-            </div>
-            <div class="form-group col-md-6">
-              <label>Due date</label>
-              <input type="text" name="due_date" class="form-control datepicker" placeholder="YYYY-MM-DD">
-            </div>
-          </div>
-          <div class="form-group">
-            <label>Assign to (optional)</label>
-            <select name="assigned_to" class="form-control select2">
-              <option value="">— Unassigned —</option>
-              <?php
-              $users = $db->query("SELECT id, username FROM user ORDER BY username")->fetchAll(PDO::FETCH_ASSOC);
-              foreach ($users as $u) {
-                echo '<option value="'.(int)$u['id'].'">'.htmlspecialchars($u['username']).'</option>';
-              }
-              ?>
-            </select>
-          </div>
-        </div>
-        <div class="modal-footer py-2">
-          <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-sm">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-
 <script>
-$(function(){
-  if ($.fn.DataTable) $('#maintTable').DataTable({ pageLength: 25 });
-  if ($.fn.select2) $('.select2').select2();
-  if ($.fn.datepicker) $('.datepicker').datepicker({ format: 'yyyy-mm-dd', autoclose: true, todayHighlight: true });
-});
+// Keep it minimal to avoid jQuery/version clashes; DataTables is optional
+if (window.jQuery && $.fn.DataTable) {
+  $(function(){
+    $('#maintTable').DataTable({
+      pageLength: 25,
+      order: [[6, 'desc']] // sort by Reported date
+    });
+  });
+}
 </script>
