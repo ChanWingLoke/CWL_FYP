@@ -141,11 +141,11 @@ function badgeClass($status) {
             </div>
             <div class="form-group col-md-2 mb-2">
               <label class="mb-1">End date (from)</label>
-              <input type="text" id="fltEndFrom" class="form-control datepicker" placeholder="YYYY-MM-DD" inputmode="numeric">
+              <input type="text" id="fltEndFrom" class="form-control datepicker" placeholder="YYYY-MM-DD" inputmode="numeric" autocomplete="off">
             </div>
             <div class="form-group col-md-2 mb-2">
               <label class="mb-1">End date (to)</label>
-              <input type="text" id="fltEndTo" class="form-control datepicker" placeholder="YYYY-MM-DD" inputmode="numeric">
+              <input type="text" id="fltEndTo" class="form-control datepicker" placeholder="YYYY-MM-DD" inputmode="numeric" autocomplete="off">
             </div>
             <div class="form-group col-md-2 mb-2 d-flex">
               <button id="fltApply" class="btn btn-primary mr-2 flex-fill">Search</button>
@@ -252,21 +252,24 @@ function badgeClass($status) {
             <label>Start / End</label>
             <div class="d-flex">
               <input type="text"
-                     name="start_date" id="w_start"
-                     class="form-control mr-2 datepicker"
-                     placeholder="YYYY-MM-DD"
-                     inputmode="numeric"
-                     pattern="^\d{4}-\d{2}-\d{2}$"
-                     title="Use format YYYY-MM-DD"
-                     required>
+                    name="start_date" id="w_start"
+                    class="form-control mr-2 datepicker"
+                    placeholder="YYYY-MM-DD"
+                    inputmode="numeric"
+                    pattern="^\d{4}-\d{2}-\d{2}$"
+                    title="Use format YYYY-MM-DD"
+                    autocomplete="off"
+                    required>
+
               <input type="text"
-                     name="end_date" id="w_end"
-                     class="form-control datepicker"
-                     placeholder="YYYY-MM-DD"
-                     inputmode="numeric"
-                     pattern="^\d{4}-\d{2}-\d{2}$"
-                     title="Use format YYYY-MM-DD"
-                     required>
+                    name="end_date" id="w_end"
+                    class="form-control datepicker"
+                    placeholder="YYYY-MM-DD"
+                    inputmode="numeric"
+                    pattern="^\d{4}-\d{2}-\d{2}$"
+                    title="Use format YYYY-MM-DD"
+                    autocomplete="off"
+                    required>
             </div>
             <small class="text-muted">Format: <code>YYYY-MM-DD</code></small>
           </div>
@@ -335,104 +338,267 @@ function badgeClass($status) {
   border-color: #6c757d !important;
   color: #fff !important;
 }
+.select2-container--open{z-index:2050!important}
 </style>
 
+
+
 <script>
-window.addEventListener('load', function () {
+window.addEventListener('DOMContentLoaded', function () {
   (function ($) {
 
-    // --- Select2 ---
-    if ($.fn.select2) { $('.select2').select2({ width: '100%' }); }
+    if ($.fn.select2) { $('.select2').select2({ width: '100%', minimumResultsForSearch: 0 }); }
 
-    // --- Datepickers (keep "today" highlight) ---
-    var $dp = $('#fltEndFrom, #fltEndTo, .datepicker');
-    $dp.each(function () {
+    var $fltDp = $('#fltEndFrom, #fltEndTo');
+    $fltDp.each(function(){
       var $i = $(this);
       if ($i.data('datepicker')) return;
       $i.datepicker({
         format: 'yyyy-mm-dd',
         autoclose: true,
-        todayHighlight: true,
         orientation: 'bottom auto',
         container: 'body'
-      }).on('changeDate', function () {
-        $(this).datepicker('hide');
-        $(this).datepicker('update');
+      });
+    // === FILTER BAR: Search / Clear handlers (strict by ID) ===
+    (function(){
+      var $form = $('#warrantyFilterForm');
+      $('#fltSearch').off('click.wflt').on('click.wflt', function(e){
+        // type=submit already submits; keep this as a safety to avoid preventDefault elsewhere
+        if (!$form.length) return;
+        // let native submit happen
+      });
+    // === Client-side filter for warranty table ===
+    function parseYMD(s){
+      var m = String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if(!m) return null;
+      return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+    }
+    $('#fltApply').off('click.wflt').on('click.wflt', function(e){
+      e.preventDefault();
+      var assetTextSel = $('#fltAsset option:selected').text().trim();
+      var vend = ($('#fltVendor').val()||'').toLowerCase().trim();
+      var dFrom = parseYMD($('#fltEndFrom').val());
+      var dTo   = parseYMD($('#fltEndTo').val());
+      $('#warrantyTable tbody tr').each(function(){
+        var $tr = $(this), $td = $tr.find('td');
+        if($td.length < 6) return;
+        var assetText  = $td.eq(1).text().trim();
+        var vendorText = ($td.eq(2).text()||'').toLowerCase().trim();
+        var endText    = $td.eq(4).text().trim();
+        var endDate    = parseYMD(endText);
+        var pass = true;
+        if($('#fltAsset').val()){
+          if(assetTextSel && assetText.indexOf(assetTextSel) === -1) pass = false;
+        }
+        if(vend && vendorText.indexOf(vend) === -1) pass = false;
+        if(dFrom && (!endDate || endDate < dFrom)) pass = false;
+        if(dTo   && (!endDate || endDate > dTo))   pass = false;
+        $tr.toggle(pass);
       });
     });
-    $('<style>.datepicker.dropdown-menu{z-index:2050!important;}</style>').appendTo('head');
-
-    // --- DataTable ---
-    var table = $('#warrantyTable').DataTable({
-      pageLength: 25,
-      order: [[4, 'asc']]
-    });
-
-    // --- Custom Range Filter (End Date) ---
-    var endMin = '', endMax = '';
-    $.fn.dataTable.ext.search.push(function (settings, data) {
-      if (settings.nTable.id !== 'warrantyTable') return true;
-      if (!endMin && !endMax) return true;
-      var end = (data[4] || '').trim(); // End column text (YYYY-MM-DD)
-      if (!end) return false;
-      if (endMin && end < endMin) return false;
-      if (endMax && end > endMax) return false;
-      return true;
-    });
-
-    // --- Apply Filters ---
-    $('#fltApply').on('click', function (e) {
-      e.preventDefault();
-      var asset  = ($('#fltAsset').val() || '').trim();
-      var vendor = ($('#fltVendor').val() || '').trim();
-      endMin     = ($('#fltEndFrom').val() || '').trim();
-      endMax     = ($('#fltEndTo').val() || '').trim();
-
-      if (asset) {
-        var rx = '^' + $.fn.dataTable.util.escapeRegex(asset) + '$';
-        table.column(1).search(rx, true, false);
-      } else {
-        table.column(1).search('');
-      }
-      table.column(2).search(vendor);
-      table.draw();
-    });
-
-    // --- Clear Filters ---
-    $('#fltClear').on('click', function (e) {
+    $('#fltClear').off('click.wflt').on('click.wflt', function(e){
       e.preventDefault();
       $('#fltAsset').val('').trigger('change');
       $('#fltVendor').val('');
       $('#fltEndFrom').val('');
       $('#fltEndTo').val('');
-      endMin = endMax = '';
-      table.search('').columns().search('');
-      table.draw();
+      $('#warrantyTable tbody tr').show();
     });
 
-    // --- Modal: Add/Edit fill ---
-    $('#warrantyModal').on('show.bs.modal', function (ev) {
-      var btn = $(ev.relatedTarget);
-      var id   = btn.data('id') || '';
-      var asset= btn.data('asset') || '';
-      var vend = btn.data('vendor') || '';
-      var start= btn.data('start') || '';
-      var end  = btn.data('end') || '';
+      $('#fltClear').off('click.wflt').on('click.wflt', function(e){
+        e.preventDefault();
+        if ($.fn.select2) { $('#fltAsset').val('').trigger('change'); }
+        else { $('#fltAsset').val(''); }
+        $('#fltVendor').val('');
+        $('#fltEndFrom').val('');
+        $('#fltEndTo').val('');
+        var curTab = ($form.find('input[name="tab"]').val() || 'active').toString();
+        window.location.href = 'index.php?page=warranty_list&tab=' + encodeURIComponent(curTab);
+      });
+    })();
 
-      $(this).find('.modal-title').text(id ? 'Edit Warranty' : 'Add Warranty');
+    });
+    // === FILTER BAR: Search / Clear handlers (server-side submission) ===
+    (function(){
+      var params = new URLSearchParams(window.location.search);
+      var curTab = params.get('tab') || 'active';
+      var baseUrl = 'index.php?page=warranty_list&tab='+encodeURIComponent(curTab);
+
+      // Find the warranty filter form (the one that contains hidden page=warranty_list)
+      var $form = $('form').filter(function(){
+        var $f = $(this);
+        var $page = $f.find('input[name="page"]');
+        return $page.length && $page.val() === 'warranty_list';
+      }).first();
+
+      // Submit on Search
+      $('#fltApply, .btn-filter').filter(function(){
+        return $(this).text().trim().toLowerCase() === 'search';
+      }).off('click.wflt').on('click.wflt', function(e){
+        e.preventDefault();
+        if ($form.length) { $form.trigger('submit'); }
+      });
+
+      // Clear inputs and reset to base tab URL
+      $('#fltClear, .btn-filter').filter(function(){
+        var t = $(this).text().trim().toLowerCase();
+        return t === 'clear' || t === 'reset';
+      }).off('click.wflt').on('click.wflt', function(e){
+        e.preventDefault();
+        $('#fltAsset').val('').trigger('change');
+        $('#fltVendor').val('');
+        $('#fltEndFrom').val('');
+        $('#fltEndTo').val('');
+        window.location.href = baseUrl;
+      });
+    })();
+
+
+    var $modal = $('#warrantyModal');
+
+    $modal
+      .on('hidden.bs.modal', function(){
+        $('#w_id').val('');
+        $('#w_asset').val('').trigger('change');
+        $('#w_vendor').val('');
+        $('#w_start').val('');
+        $('#w_end').val('');
+        $modal.find('.modal-title').text('Add Warranty');
+      })
+      .on('shown.bs.modal', function(){
+        var $start = $('#w_start');
+        var $end   = $('#w_end');
+
+        try {
+          if ($start.data('datepicker')) $start.datepicker('destroy');
+          if ($end.data('datepicker'))   $end.datepicker('destroy');
+        } catch(e) {}
+        $start.datepicker({
+          format: 'yyyy-mm-dd',
+          autoclose: true,
+          todayHighlight: true,
+          orientation: 'bottom auto',
+          container: '#warrantyModal'
+        });
+        $end.datepicker({
+          format: 'yyyy-mm-dd',
+          autoclose: true,
+          todayHighlight: true,
+          orientation: 'bottom auto',
+          container: '#warrantyModal'
+        });
+
+        $start.off('changeDate.warr').on('changeDate.warr', function (e) {
+          $end.datepicker('setStartDate', e.date);
+          var sD = $start.datepicker('getDate');
+          var eD = $end.datepicker('getDate');
+          if (eD && sD && eD < sD) { $end.datepicker('setDate', sD); }
+        });
+        $end.off('changeDate.warr').on('changeDate.warr', function (e) {
+          $start.datepicker('setEndDate', e.date);
+        });
+
+        function normalizeYMD(s) {
+          var m = String(s || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+          if (!m) return s;
+          var y = m[1], mo = ('00'+m[2]).slice(-2), d = ('00'+m[3]).slice(-2);
+          return [y, mo, d].join('-');
+        }
+        $start.add($end).off('blur.warr').on('blur.warr', function(){
+          var $i = $(this), norm = normalizeYMD($i.val());
+          if (norm !== $i.val()) $i.val(norm);
+        });
+
+        var $assetSel = $('#w_asset');
+        if ($.fn.select2) {
+          if ($assetSel.data('select2')) { try { $assetSel.select2('destroy'); } catch(e){} }
+          $assetSel.select2({
+            width: '100%',
+            tags: false,
+            placeholder: 'Select asset',
+            minimumResultsForSearch: 0,
+            dropdownParent: $modal,
+            allowClear: true
+          });
+
+          (function(){
+            var ModalProto = $.fn.modal && $.fn.modal.Constructor && $.fn.modal.Constructor.prototype;
+            var prop = null, saved = null;
+            if (ModalProto) {
+              if (typeof ModalProto.enforceFocus === 'function') { prop = 'enforceFocus'; }
+              else if (typeof ModalProto._enforceFocus === 'function') { prop = '_enforceFocus'; }
+              saved = prop ? ModalProto[prop] : null;
+            }
+            $assetSel.off('select2:open.wasset').on('select2:open.wasset', function(){
+              try { if (prop) { ModalProto[prop] = function(){}; } } catch(e){}
+              setTimeout(function(){
+                var el = document.querySelector('.select2-container--open .select2-search__field');
+                if (el) el.focus();
+              }, 0);
+            });
+            $assetSel.off('select2:close.wasset').on('select2:close.wasset', function(){
+              try { if (prop && saved) { ModalProto[prop] = saved; } } catch(e){}
+            });
+          })();
+        }
+      });
+
+    $(document).on('click', '.btn-edit', function(){
+      var id    = $(this).data('id');
+      var asset = $(this).data('asset');
+      var vend  = $(this).data('vendor');
+      var start = $(this).data('start');
+      var end   = $(this).data('end');
       $('#w_id').val(id);
       $('#w_asset').val(asset).trigger('change');
       $('#w_vendor').val(vend);
       $('#w_start').val(start);
       $('#w_end').val(end);
-    }).on('hidden.bs.modal', function(){
-      // reset form on close
-      $('#w_id').val('');
-      $('#w_asset').val('').trigger('change');
-      $('#w_vendor').val('');
-      $('#w_start').val('');
-      $('#w_end').val('');
+      $modal.find('.modal-title').text('Edit Warranty');
+      $modal.modal('show');
     });
+
+    // === FILTER BAR: Client-side Search / Clear (no page reload) ===
+    (function(){
+      function parseYMD(s){
+        var m = String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        if(!m) return null;
+        return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+      }
+
+      $('#fltApply').off('click.wflt').on('click.wflt', function(e){
+        e.preventDefault();
+        var assetTextSel = $('#fltAsset option:selected').text().trim();
+        var hasAssetSel  = $('#fltAsset').val() && $('#fltAsset').val() !== '';
+        var vend = ($('#fltVendor').val()||'').toLowerCase().trim();
+        var dFrom = parseYMD($('#fltEndFrom').val());
+        var dTo   = parseYMD($('#fltEndTo').val());
+
+        $('#warrantyTable tbody tr').each(function(){
+          var $tr = $(this), $td = $tr.find('td');
+          if($td.length < 6) return;
+          var assetText  = $td.eq(1).text().trim();
+          var vendorText = ($td.eq(2).text()||'').toLowerCase().trim();
+          var endText    = $td.eq(4).text().trim();
+          var endDate    = parseYMD(endText);
+          var pass = true;
+          if(hasAssetSel && assetTextSel && assetText.indexOf(assetTextSel) === -1) pass = false;
+          if(vend && vendorText.indexOf(vend) === -1) pass = false;
+          if(dFrom && (!endDate || endDate < dFrom)) pass = false;
+          if(dTo   && (!endDate || endDate > dTo))   pass = false;
+          $tr.toggle(pass);
+        });
+      });
+
+      $('#fltClear').off('click.wflt').on('click.wflt', function(e){
+        e.preventDefault();
+        if ($.fn.select2) { $('#fltAsset').val('').trigger('change'); } else { $('#fltAsset').val(''); }
+        $('#fltVendor').val('');
+        $('#fltEndFrom').val('');
+        $('#fltEndTo').val('');
+        $('#warrantyTable tbody tr').show();
+      });
+    })();
 
   })(jQuery);
 });

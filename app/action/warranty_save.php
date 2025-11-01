@@ -17,6 +17,27 @@ if (!$db) {
 $id          = isset($_POST['id']) ? (int)$_POST['id'] : 0;
 $asset_id    = isset($_POST['asset_id']) ? (int)$_POST['asset_id'] : 0;
 $vendor_name = trim($_POST['vendor_name'] ?? '');
+
+// Validate asset_id must be numeric and exist
+$asset_id = $_POST['asset_id'] ?? '';
+if (!ctype_digit((string)$asset_id)) {
+  header('Location: ../../index.php?page=warranty_list&type=danger&msg=' . urlencode('Please select an existing asset from the list. New assets can only be created on the Add Asset page.'));
+  exit;
+}
+// Verify asset exists
+try {
+  $chk = $db->prepare("SELECT COUNT(*) FROM `$productTable` WHERE id = :id");
+  $chk->execute([':id' => (int)$asset_id]);
+  if ($chk->fetchColumn() == 0) {
+    header('Location: ../../index.php?page=warranty_list&type=danger&msg=' . urlencode('Selected asset no longer exists. Please add it on the Add Asset page.'));
+    exit;
+  }
+} catch (Throwable $e) {
+  header('Location: ../../index.php?page=warranty_list&type=danger&msg=' . urlencode('Could not verify asset.'));
+  exit;
+}
+
+
 $start_date  = trim($_POST['start_date'] ?? '');
 $end_date    = trim($_POST['end_date'] ?? '');
 
