@@ -21,13 +21,13 @@ catch (Throwable $e) {
 
 // Tabs / filter
 $tab = strtolower($_GET['tab'] ?? 'open');
+if ($tab === 'closed') { $tab = 'resolved'; }
 switch ($tab) {
   case 'open':          $where = "mo.status='open'"; break;
   case 'in_progress':   $where = "mo.status='in_progress'"; break;
   case 'waiting_parts': $where = "mo.status='waiting_parts'"; break;
   case 'resolved':      $where = "mo.status='resolved'"; break;
-  case 'closed':        $where = "mo.status='closed'"; break;
-  case 'all':
+case 'all':
   default:              $where = '1=1';
 }
 
@@ -85,7 +85,6 @@ function statusBadge($s){
         <a class="btn btn-<?= $tab==='in_progress'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=in_progress">In Progress</a>
         <a class="btn btn-<?= $tab==='waiting_parts'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=waiting_parts">Waiting Parts</a>
         <a class="btn btn-<?= $tab==='resolved'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=resolved">Resolved</a>
-        <a class="btn btn-<?= $tab==='closed'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=closed">Closed</a>
         <a class="btn btn-<?= $tab==='all'?'secondary':'outline-secondary' ?> btn-sm" href="index.php?page=maintenance_list&tab=all">All</a>
 
         <a class="btn btn-success btn-sm float-right" href="index.php?page=maintenance_request">
@@ -152,7 +151,7 @@ function statusBadge($s){
 
                       <form action="app/action/maintenance_update.php" method="post" class="d-inline" onsubmit="return confirm('Close this request?');">
                         <input type="hidden" name="id" value="<?= (int)$row['id'] ?>">
-                        <input type="hidden" name="action" value="close">
+                        <input type="hidden" name="action" value="resolved">
                         <button class="btn btn-outline-danger btn-sm">
                           <i class="fas fa-times"></i> Close
                         </button>
@@ -188,7 +187,7 @@ function statusBadge($s){
         <!-- Filled by AJAX -->
       </div>
       <div class="modal-footer py-2">
-        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Resolve</button>
       </div>
     </div>
   </div>
@@ -244,5 +243,4 @@ if (window.jQuery && $.fn.DataTable) {
   });
 })();
 </script>
-
 

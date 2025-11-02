@@ -80,7 +80,7 @@ function badgeStatus($s){
     'in_progress'   => ['In Progress','badge-info'],
     'waiting_parts' => ['Waiting Parts','badge-warning'],
     'resolved'      => ['Resolved','badge-success'],
-    'closed'        => ['Closed','badge-dark'],
+    'resolved'        => ['resolved','badge-dark'],
   ];
   $s = strtolower($s ?? 'open');
   [$label,$cls] = $map[$s] ?? ['Open','badge-secondary'];

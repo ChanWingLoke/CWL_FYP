@@ -24,7 +24,7 @@ if ($id <= 0) {
   exit;
 }
 
-$allowed = ['open','in_progress','waiting_parts','resolved','closed'];
+$allowed = ['open','in_progress','waiting_parts','resolved','resolved'];
 $set = [];
 $params = [':id' => $id];
 
@@ -60,7 +60,7 @@ if ($nextStatus && in_array($nextStatus, $allowed, true)) {
       $set[] = 'resolved_at = NOW()';
       break;
 
-    case 'closed':
+    case 'resolved':
       $set[] = 'closed_at = NOW()';
       break;
   }

@@ -24,8 +24,8 @@ try {
     $stmt = $db->prepare("UPDATE maintenance_orders SET status='in_progress' WHERE id=:id");
     $stmt->execute([':id'=>$id]);
     $msg = 'Request started.';
-  } elseif ($action === 'close' && $status !== 'closed') {
-    $stmt = $db->prepare("UPDATE maintenance_orders SET status='closed' WHERE id=:id");
+  } elseif ($action === 'close' && $status !== 'resolved') {
+    $stmt = $db->prepare("UPDATE maintenance_orders SET status='resolved' WHERE id=:id");
     $stmt->execute([':id'=>$id]);
     $msg = 'Request closed.';
   } else {
