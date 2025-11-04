@@ -36,6 +36,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['do_booking'])) {
   try {
     $asset_id  = (int)($_POST['asset_id'] ?? 0);
     $user_id   = (int)($_POST['user_id'] ?? 0);
+    $expected_user_id = (int)($_POST['expected_user_id'] ?? 0);
+    if ($expected_user_id && $expected_user_id !== $user_id) {
+      throw new Exception('Scanned ID does not match the selected user.');
+    }
     $start_raw = trim($_POST['start_time'] ?? '');
     $end_raw   = trim($_POST['end_time'] ?? '');
     $notes     = trim($_POST['notes'] ?? '');
@@ -67,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['do_booking'])) {
     $sql = "SELECT COUNT(*) FROM bookings
             WHERE asset_id = :asset_id
               AND status IN ('pending','approved')
-              AND NOT (end_time <= :start_time OR start_time >= :end_time)";
+              AND start_time <= :end_time AND end_time >= :start_time";
     $stmt = $db->prepare($sql);
     $stmt->execute([
       ':asset_id'   => $asset_id,
@@ -241,7 +245,9 @@ try {
               <h3 class="card-title mb-0"><b>Booking Form</b></h3>
             </div>
             <div class="card-body">
-              <form method="post" autocomplete="off">
+              <form method="post" autocomplete="off" id="booking-form">
+  <input type="hidden" name="do_booking" value="1">
+  <input type="hidden" name="expected_user_id" value="">
                 <div class="form-group">
                   <label>Asset</label>
                   <select name="asset_id" class="form-control select2" required>
@@ -392,4 +398,179 @@ window.addEventListener('load', function () {
     });
   }
 });
+</script>
+
+
+<!-- Barcode Scan Modal -->
+<div class="modal fade" id="scanUserModal" tabindex="-1" role="dialog" aria-labelledby="scanUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-sm" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="scanUserModalLabel">Please scan User ID to proceed</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info" id="scanPrompt" style="margin-bottom:8px">Waiting for barcode... Press Enter to finish.</div>
+        <div class="small text-muted">Tip: Your scanner should send an <strong>Enter</strong> after the digits.</div>
+        <div class="alert alert-danger d-none" id="scanError" style="margin-top:8px"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+(function() {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+  function init() {
+    var form = document.getElementById('booking-form');
+    if (!form) {
+      var forms = document.getElementsByTagName('form');
+      for (var i=0;i<forms.length;i++) {
+        if ((forms[i].getAttribute('method')||'').toLowerCase()==='post') { form = forms[i]; break; }
+      }
+    }
+    if (!form) return;
+
+    var userSelect = form.querySelector('select[name="user_id"]');
+    var userHidden = form.querySelector('input[name="user_id"]');
+    if (!userSelect && !userHidden) {
+      userHidden = document.createElement('input');
+      userHidden.type = 'hidden';
+      userHidden.name = 'user_id';
+      form.appendChild(userHidden);
+    }
+
+    var expectedHidden = form.querySelector('input[name="expected_user_id"]');
+    if (!expectedHidden) {
+      expectedHidden = document.createElement('input');
+      expectedHidden.type = 'hidden';
+      expectedHidden.name = 'expected_user_id';
+      form.appendChild(expectedHidden);
+    }
+
+    if (!form.querySelector('input[name="do_booking"]')) {
+      var doHidden = document.createElement('input');
+      doHidden.type = 'hidden';
+      doHidden.name = 'do_booking';
+      doHidden.value = '1';
+      form.appendChild(doHidden);
+    }
+
+    form.addEventListener('submit', function(e) {
+      if (!form.__scanConfirmed) {
+        e.preventDefault();
+
+        var selectedVal = '';
+        if (userSelect) selectedVal = (userSelect.value || '').trim();
+        expectedHidden.value = selectedVal;
+
+        openScanModal(function(scannedId, detach) {
+          var selectedNow = userSelect ? (userSelect.value || '').trim() : expectedHidden.value;
+          if (selectedNow && String(scannedId) !== String(selectedNow)) {
+            showScanError('Scanned ID does not match the selected user.');
+            return; // user can re-scan
+          }
+
+          var ok = false;
+          if (userSelect) {
+            for (var i=0; i<userSelect.options.length; i++) {
+              if (String(userSelect.options[i].value) === String(scannedId)) {
+                userSelect.value = scannedId; ok = true; break;
+              }
+            }
+          }
+          if (!ok) {
+            if (!userHidden) {
+              userHidden = document.createElement('input');
+              userHidden.type = 'hidden';
+              userHidden.name = 'user_id';
+              form.appendChild(userHidden);
+            }
+            userHidden.value = scannedId;
+            if (userSelect && userSelect.required) userSelect.disabled = true;
+          }
+
+          form.__scanConfirmed = true;
+          form.noValidate = true;
+          detach();
+          hideScanModal();
+          form.submit();
+        });
+      }
+    });
+
+    var submitBtns = form.querySelectorAll('button[type="submit"],input[type="submit"]');
+    for (var i=0;i<submitBtns.length;i++) {
+      submitBtns[i].addEventListener('click', function(ev) {
+        if (!form.__scanConfirmed) ev.stopImmediatePropagation();
+      }, true);
+    }
+  }
+
+  function openScanModal(onDone) {
+    var modal = document.getElementById('scanUserModal');
+    var err = document.getElementById('scanError');
+    if (err) { err.textContent = ''; err.classList.add('d-none'); }
+
+    function show() {
+      if (typeof $ !== 'undefined' && typeof $(modal).modal === 'function') $(modal).modal('show');
+      else { modal.style.display = 'block'; modal.classList.add('show'); }
+    }
+    function hide() {
+      if (typeof $ !== 'undefined' && typeof $(modal).modal === 'function') $(modal).modal('hide');
+      else { modal.style.display = 'none'; modal.classList.remove('show'); }
+    }
+
+    var buffer = '';
+    var lastTs = 0;
+    var timeoutMs = 100;
+
+    function keyHandler(ev) {
+      if (ev.key === 'Shift' || ev.key === 'Alt' || ev.key === 'Control') return;
+      var now = Date.now();
+      if (now - lastTs > timeoutMs) buffer = '';
+      lastTs = now;
+
+      if (ev.key === 'Enter') {
+        ev.preventDefault();
+        var value = buffer.trim();
+        buffer = '';
+        if (!value) { showScanError('No data received. Please scan again.'); return; }
+        onDone(value, detach);
+        return;
+      }
+      if (ev.key && ev.key.length === 1) buffer += ev.key;
+    }
+
+    function detach() { window.removeEventListener('keydown', keyHandler, true); }
+    function showScanError(msg) {
+      var e = document.getElementById('scanError');
+      if (e) { e.textContent = msg; e.classList.remove('d-none'); }
+    }
+
+    window.addEventListener('keydown', keyHandler, true);
+    show();
+
+    window.hideScanModal = hide;
+    window.showScanError = showScanError;
+  }
+
+  function hideScanModal() {
+    var modal = document.getElementById('scanUserModal');
+    if (!modal) return;
+    if (typeof $ !== 'undefined' && typeof $(modal).modal === 'function') $(modal).modal('hide');
+    else { modal.style.display = 'none'; modal.classList.remove('show'); }
+  }
+})();
 </script>

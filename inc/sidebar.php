@@ -79,32 +79,12 @@
           </li>
 
           <!-- Maintenance -->
-           <li class="nav-item has-treeview">
-              <a href="#" class="nav-link <?= in_array($current, ['maintenance_list','maintenance_requests','maintenance_calendar']) ? 'active' : '' ?>">
-                <i class="material-symbols-outlined">build</i>
-                <p>
-                  Maintenance
-                  <i class="right fas fa-angle-left"></i>
-                </p>
-              </a>
-              <ul class="nav nav-treeview">
-                <li class="nav-item">
-                  <a href="index.php?page=maintenance_requests" class="nav-link <?= ($current==='maintenance_requests')?'active':'' ?>">
-                    <p>Requests</p>
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a href="index.php?page=maintenance_list" class="nav-link <?= ($current==='maintenance_list')?'active':'' ?>">
-                    <p>All</p>
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a href="index.php?page=maintenance_calendar" class="nav-link <?= ($current==='maintenance_calendar')?'active':'' ?>">
-                    <p>Calendar</p>
-                  </a>
-                </li>
-              </ul>
-            </li>
+          <li class="nav-item">
+            <a href="index.php?page=maintenance_list" class="nav-link <?= ($current === 'maintenance_list') ? 'active' : '' ?>">
+              <i class="material-symbols-outlined">build</i>
+              <p>Maintenance</p>
+            </a>
+          </li>
           
           <!-- Bookings -->
           <li class="nav-item has-treeview <?= in_array($current, ['bookings','bookings_requests','bookings_all']) ? 'menu-open' : '' ?>">
@@ -160,43 +140,6 @@
               </p>
             </a>
           </li> -->
-
-          <!-- Expense -->
-          <li class="nav-item has-treeview">
-            <a href="#" class="nav-link <?php 
-              if ($actual_link == 'add_expense' || $actual_link =='exspense_list' || $actual_link == 'expense_catagory_list') {echo "active";
-          }else{
-            echo "";
-          }
-            ?>">
-              <i class="material-symbols-outlined">money</i>
-              <p>
-                Expense
-                <i class="right fas fa-angle-left"></i>
-              </p>
-            </a>
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="index.php?page=add_expense" class="nav-link <?php echo $actual_link=='add_expense'?'active':'';?>">
-                  <!-- <i class="far fa-circle nav-icon"></i> -->
-                  <p>New expense</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="index.php?page=exspense_list" class="nav-link <?php echo $actual_link=='exspense_list'?'active':'';?>">
-                  <!-- <i class="fas fa-align-justify nav-icon"></i> -->
-                  <p>Expense list</p>
-                </a>
-              </li>
-              
-              <li class="nav-item">
-                <a href="index.php?page=expense_catagory_list" class="nav-link <?php echo $actual_link=='expense_catagory_list'?'active':'';?>">
-                  <!-- <i class="fas fa-align-justify nav-icon"></i> -->
-                  <p>Expense catagory list</p>
-                </a>
-              </li>
-            </ul>
-          </li>
 
           <!-- Buy  -->
            <li class="nav-item has-treeview">

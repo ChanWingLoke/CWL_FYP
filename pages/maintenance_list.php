@@ -1,4 +1,6 @@
 <?php
+$tab = 'all'; // forced single-tab mode
+
 // pages/maintenance_list.php
 
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
@@ -22,14 +24,7 @@ catch (Throwable $e) {
 // Tabs / filter
 $tab = strtolower($_GET['tab'] ?? 'open');
 if ($tab === 'closed') { $tab = 'resolved'; }
-switch ($tab) {
-  case 'open':          $where = "mo.status='open'"; break;
-  case 'in_progress':   $where = "mo.status='in_progress'"; break;
-  case 'waiting_parts': $where = "mo.status='waiting_parts'"; break;
-  case 'resolved':      $where = "mo.status='resolved'"; break;
-case 'all':
-  default:              $where = '1=1';
-}
+$where = "1=1";
 
 // Query (aliases keep template wording consistent)
 $sql = "
@@ -85,6 +80,7 @@ function statusBadge($s){
         <a class="btn btn-<?= $tab==='in_progress'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=in_progress">In Progress</a>
         <a class="btn btn-<?= $tab==='waiting_parts'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=waiting_parts">Waiting Parts</a>
         <a class="btn btn-<?= $tab==='resolved'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=resolved">Resolved</a>
+        <a class="btn btn-<?= $tab==='closed'?'primary':'outline-primary' ?> btn-sm mr-2" href="index.php?page=maintenance_list&tab=closed">Resolved</a>
         <a class="btn btn-<?= $tab==='all'?'secondary':'outline-secondary' ?> btn-sm" href="index.php?page=maintenance_list&tab=all">All</a>
 
         <a class="btn btn-success btn-sm float-right" href="index.php?page=maintenance_request">

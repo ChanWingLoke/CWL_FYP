@@ -1,11 +1,11 @@
 -- phpMyAdmin SQL Dump
--- version 5.1.3
+-- version 5.2.1
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Jul 22, 2023 at 01:04 PM
--- Server version: 10.4.22-MariaDB
--- PHP Version: 7.4.28
+-- Generation Time: Nov 03, 2025 at 06:37 AM
+-- Server version: 10.4.32-MariaDB
+-- PHP Version: 8.0.30
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
@@ -24,6 +24,33 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `bookings`
+--
+
+CREATE TABLE `bookings` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `asset_id` int(10) UNSIGNED NOT NULL,
+  `user_id` int(10) UNSIGNED NOT NULL,
+  `start_time` datetime NOT NULL,
+  `end_time` datetime NOT NULL,
+  `notes` text DEFAULT NULL,
+  `status` enum('pending','approved','rejected','returned') NOT NULL DEFAULT 'pending',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp()
+) ;
+
+--
+-- Dumping data for table `bookings`
+--
+
+INSERT INTO `bookings` (`id`, `asset_id`, `user_id`, `start_time`, `end_time`, `notes`, `status`, `created_at`, `updated_at`) VALUES
+(2, 4, 1, '2025-10-20 00:00:00', '2025-10-30 23:59:59', 'hihi', 'returned', '2025-10-20 08:24:25', '2025-10-26 12:41:38'),
+(3, 2, 1, '2025-10-26 00:00:00', '2025-10-30 23:59:59', '', 'approved', '2025-10-26 12:40:57', '2025-10-26 12:41:26'),
+(4, 4, 1, '2025-10-27 00:00:00', '2025-10-29 23:59:59', '', 'returned', '2025-10-26 14:07:35', '2025-11-02 13:56:35');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `catagory`
 --
 
@@ -34,7 +61,7 @@ CREATE TABLE `catagory` (
   `created_by` int(2) DEFAULT NULL,
   `update_at` date DEFAULT NULL,
   `create_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `catagory`
@@ -60,7 +87,7 @@ CREATE TABLE `expense` (
   `ex_description` text NOT NULL,
   `added_by` int(4) DEFAULT NULL,
   `added_date` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `expense`
@@ -81,7 +108,7 @@ CREATE TABLE `expense_catagory` (
   `description` text NOT NULL,
   `added_by` int(4) NOT NULL,
   `added_time` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `expense_catagory`
@@ -111,7 +138,7 @@ CREATE TABLE `factory_products` (
   `added_by` int(4) NOT NULL,
   `last_update_at` date NOT NULL,
   `added_time` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
 
@@ -134,7 +161,7 @@ CREATE TABLE `invoice` (
   `payment_type` varchar(20) NOT NULL,
   `return_status` varchar(30) NOT NULL DEFAULT 'no',
   `last_update` date DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `invoice`
@@ -157,7 +184,7 @@ CREATE TABLE `invoice_details` (
   `product_name` varchar(100) NOT NULL,
   `price` varchar(50) NOT NULL,
   `quantity` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `invoice_details`
@@ -166,6 +193,37 @@ CREATE TABLE `invoice_details` (
 INSERT INTO `invoice_details` (`id`, `invoice_no`, `pid`, `product_name`, `price`, `quantity`) VALUES
 (1, 1, 1, 'AMD Ryzen 9 5900X Processor', '9000', 2),
 (2, 2, 3, 'Adata XPG Gammix D30 8GB 3200MHz DDR4 CL16 RAM Memory Module', '10000', 5);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `maintenance_orders`
+--
+
+CREATE TABLE `maintenance_orders` (
+  `id` int(11) NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `title` varchar(150) NOT NULL,
+  `description` text DEFAULT NULL,
+  `priority` enum('low','medium','high','critical') NOT NULL DEFAULT 'low',
+  `status` enum('open','in_progress','waiting_parts','resolved','closed') NOT NULL DEFAULT 'open',
+  `requested_by` int(11) NOT NULL,
+  `assigned_to` int(11) DEFAULT NULL,
+  `requested_date` date NOT NULL,
+  `due_date` date DEFAULT NULL,
+  `resolved_date` date DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NULL DEFAULT NULL ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+
+--
+-- Dumping data for table `maintenance_orders`
+--
+
+INSERT INTO `maintenance_orders` (`id`, `asset_id`, `title`, `description`, `priority`, `status`, `requested_by`, `assigned_to`, `requested_date`, `due_date`, `resolved_date`, `created_at`, `updated_at`) VALUES
+(1, 4, 'Minor Fix', NULL, 'medium', 'in_progress', 2, 1, '2025-11-01', '2025-11-02', NULL, '2025-10-29 15:11:53', NULL),
+(2, 4, 'FIXING', NULL, 'medium', 'in_progress', 2, 1, '2025-11-03', '2025-11-03', NULL, '2025-10-29 17:41:16', '2025-11-01 06:54:34'),
+(3, 4, 'Fixing fixing', '', 'high', 'open', 1, 2, '2025-11-02', '2025-11-03', NULL, '2025-11-02 13:18:31', NULL);
 
 -- --------------------------------------------------------
 
@@ -188,7 +246,7 @@ CREATE TABLE `member` (
   `update_by` int(8) DEFAULT NULL,
   `update_at` date DEFAULT NULL,
   `create_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `member`
@@ -208,7 +266,7 @@ CREATE TABLE `paymethode` (
   `name` varchar(50) DEFAULT NULL,
   `added_by` int(11) DEFAULT NULL,
   `added_time` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `paymethode`
@@ -243,16 +301,17 @@ CREATE TABLE `products` (
   `added_by` int(4) DEFAULT NULL,
   `last_update_at` date NOT NULL,
   `added_time` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `products`
 --
 
 INSERT INTO `products` (`id`, `product_name`, `product_id`, `brand_name`, `catagory_id`, `catagory_name`, `product_source`, `sku`, `quantity`, `alert_quanttity`, `buy_price`, `sell_price`, `added_by`, `last_update_at`, `added_time`) VALUES
-(1, 'AMD Ryzen 9 5900X Processor', 'P1689942626', 'Ryzen', 1, 'Processors', 'factory', '456AD5S', 48, 5, '3653', '4500', 1, '2023-07-27', '2023-07-21 12:30:26'),
+(1, 'AMD Ryzen 9 5900X Processor', 'P1689942626', 'Ryzen', 1, 'Processors', 'factory', '456AD5S', 48, 5, '3653', '4500', 1, '2025-10-22', '2023-07-21 12:30:26'),
 (2, 'Intel Core I5-10400 Processor', 'P1689942673', 'Intel', 1, 'Processors', 'factory', 'SDS55S', 0, 5, NULL, NULL, 1, '0000-00-00', '2023-07-21 12:31:13'),
-(3, 'Adata XPG Gammix D30 8GB 3200MHz DDR4 CL16 RAM Memory Module', 'P1689943120', 'XPG', 3, 'RAM (Memory)', 'factory', '2365SDSV', 0, 160, '1839', '2000', 1, '2023-07-19', '2023-07-21 12:38:40');
+(3, 'Adata XPG Gammix D30 8GB 3200MHz DDR4 CL16 RAM Memory Module', 'P1689943120', 'XPG', 3, 'RAM (Memory)', 'factory', '2365SDSV', 0, 160, '1839', '2000', 1, '2023-07-19', '2023-07-21 12:38:40'),
+(4, 'Asus Prime', 'P1760933488', 'ASUS', 2, 'Motherboards', 'factory', '123456789', 0, 10, NULL, '', 1, '2025-10-20', '2025-10-20 04:11:28');
 
 -- --------------------------------------------------------
 
@@ -270,7 +329,7 @@ CREATE TABLE `purchase_payment` (
   `added_by` int(4) DEFAULT NULL,
   `last_update` date DEFAULT NULL,
   `added_time` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `purchase_payment`
@@ -306,7 +365,7 @@ CREATE TABLE `purchase_products` (
   `return_status` varchar(50) NOT NULL DEFAULT 'no',
   `added_by` int(4) DEFAULT NULL,
   `added_time` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `purchase_products`
@@ -336,7 +395,7 @@ CREATE TABLE `purchase_return` (
   `netTotal` float(15,2) NOT NULL DEFAULT 0.00,
   `create_by` int(4) NOT NULL,
   `added_date` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
 
@@ -354,7 +413,7 @@ CREATE TABLE `sell_payment` (
   `added_by` int(4) NOT NULL,
   `last_update` date DEFAULT NULL,
   `added_time` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `sell_payment`
@@ -379,7 +438,7 @@ CREATE TABLE `sell_return` (
   `amount` float(15,2) NOT NULL DEFAULT 0.00,
   `added_by` int(11) DEFAULT NULL,
   `added_time` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 -- --------------------------------------------------------
 
@@ -396,7 +455,7 @@ CREATE TABLE `staff` (
   `address` text DEFAULT NULL,
   `added_by` int(4) DEFAULT NULL,
   `added_time` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `staff`
@@ -426,7 +485,7 @@ CREATE TABLE `suppliar` (
   `update_by` int(11) DEFAULT NULL,
   `update_at` date DEFAULT NULL,
   `create_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `suppliar`
@@ -448,19 +507,55 @@ CREATE TABLE `user` (
   `user_role` varchar(10) DEFAULT NULL,
   `update_by` int(11) DEFAULT NULL,
   `last_update_at` int(11) DEFAULT NULL,
-  `added_date` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+  `added_date` timestamp NOT NULL DEFAULT current_timestamp(),
+  `photo` varchar(255) DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
 --
 -- Dumping data for table `user`
 --
 
-INSERT INTO `user` (`id`, `username`, `password`, `user_role`, `update_by`, `last_update_at`, `added_date`) VALUES
-(1, 'mayuri.infospace@gmail.com', '21232f297a57a5a743894a0e4a801fc3', 'admin', 1, 0, '2023-08-24 18:00:00');
+INSERT INTO `user` (`id`, `username`, `password`, `user_role`, `update_by`, `last_update_at`, `added_date`, `photo`) VALUES
+(1, 'lahmao', 'e99a18c428cb38d5f260853678922e03', 'admin', 1, 0, '2023-08-24 18:00:00', 'dist/img/lahmao.png'),
+(2, 'admin2', '0192023a7bbd73250516f069df18b500', 'admin', NULL, NULL, '2025-10-26 14:20:55', NULL);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `warranties`
+--
+
+CREATE TABLE `warranties` (
+  `id` int(11) NOT NULL,
+  `asset_id` int(11) NOT NULL,
+  `vendor_name` varchar(100) DEFAULT NULL,
+  `start_date` date NOT NULL,
+  `end_date` date NOT NULL,
+  `warranty_status` enum('active','expired') NOT NULL DEFAULT 'active',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `warranties`
+--
+
+INSERT INTO `warranties` (`id`, `asset_id`, `vendor_name`, `start_date`, `end_date`, `warranty_status`, `created_at`) VALUES
+(1, 4, 'Asus', '2025-10-26', '2025-10-29', 'expired', '2025-10-26 08:52:32'),
+(2, 2, 'Intel', '2025-10-27', '2025-10-30', 'expired', '2025-10-26 09:07:11'),
+(3, 1, 'AMD', '2025-10-28', '2025-10-31', 'expired', '2025-10-26 10:58:43'),
+(5, 4, 'Asus', '2025-11-01', '2025-11-02', 'expired', '2025-11-01 08:22:52');
 
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `bookings`
+--
+ALTER TABLE `bookings`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_asset_time` (`asset_id`,`start_time`,`end_time`),
+  ADD KEY `idx_user_time` (`user_id`,`start_time`,`end_time`);
 
 --
 -- Indexes for table `catagory`
@@ -498,6 +593,16 @@ ALTER TABLE `invoice`
 ALTER TABLE `invoice_details`
   ADD PRIMARY KEY (`id`),
   ADD KEY `invoice_no` (`invoice_no`);
+
+--
+-- Indexes for table `maintenance_orders`
+--
+ALTER TABLE `maintenance_orders`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_asset` (`asset_id`),
+  ADD KEY `idx_requested_by` (`requested_by`),
+  ADD KEY `idx_assigned_to` (`assigned_to`),
+  ADD KEY `idx_status_due` (`status`,`due_date`);
 
 --
 -- Indexes for table `member`
@@ -567,8 +672,21 @@ ALTER TABLE `user`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `warranties`
+--
+ALTER TABLE `warranties`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_asset_id` (`asset_id`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
+
+--
+-- AUTO_INCREMENT for table `bookings`
+--
+ALTER TABLE `bookings`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `catagory`
@@ -607,6 +725,12 @@ ALTER TABLE `invoice_details`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
+-- AUTO_INCREMENT for table `maintenance_orders`
+--
+ALTER TABLE `maintenance_orders`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
 -- AUTO_INCREMENT for table `member`
 --
 ALTER TABLE `member`
@@ -622,7 +746,7 @@ ALTER TABLE `paymethode`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `purchase_payment`
@@ -670,7 +794,31 @@ ALTER TABLE `suppliar`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `warranties`
+--
+ALTER TABLE `warranties`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `maintenance_orders`
+--
+ALTER TABLE `maintenance_orders`
+  ADD CONSTRAINT `fk_maint_asset` FOREIGN KEY (`asset_id`) REFERENCES `products` (`id`) ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_maint_assigned_to` FOREIGN KEY (`assigned_to`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  ADD CONSTRAINT `fk_maint_requested_by` FOREIGN KEY (`requested_by`) REFERENCES `user` (`id`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `warranties`
+--
+ALTER TABLE `warranties`
+  ADD CONSTRAINT `fk_warranty_asset` FOREIGN KEY (`asset_id`) REFERENCES `products` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

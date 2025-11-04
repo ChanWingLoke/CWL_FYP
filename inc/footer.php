@@ -63,11 +63,23 @@
     $.fn.datepicker.defaults.orientation = 'bottom';
   }
 
-  // Initialize any datepicker fields on the page
-  $(function(){
-    $('.datepicker').datepicker();
-  });
+<script>
+$(function () {
+  if ($.fn.datepicker) {
+    $('.datepicker').each(function () {
+      // Only initialize if not already active
+      if (!$(this).data('datepicker')) {
+        $(this).datepicker({
+          format: 'yyyy-mm-dd',
+          autoclose: true,
+          todayHighlight: true
+        });
+      }
+    });
+  }
+});
 </script>
+
 
 
 
