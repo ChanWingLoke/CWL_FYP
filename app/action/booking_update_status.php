@@ -1,3 +1,9 @@
+<?php session_start(); 
+if (!isset($_SESSION['user_role']) || strtolower($_SESSION['user_role']) !== 'admin') {
+  http_response_code(403);
+  die('Permission denied');
+}
+?>
 <?php
 // app/action/booking_update_status.php
 require_once __DIR__ . '/../../app/init.php';

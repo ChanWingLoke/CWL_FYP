@@ -1,295 +1,197 @@
+<?php
+// Dashboard (reworked for IT Asset Management focus)
+// Assumes app/init.php (via inc/header.php) has already started session and created $pdo
+// We keep existing AdminLTE styling but simplify to the four core modules.
+
+// Helper: safe count fetch
+function quick_count(PDO $pdo, $sql) {
+    try {
+        $stmt = $pdo->query($sql);
+        return (int)$stmt->fetchColumn();
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
+// Compute core metrics
+$total_assets         = quick_count($pdo, "SELECT COUNT(*) FROM `products`");
+$total_maint_open     = quick_count($pdo, "SELECT COUNT(*) FROM `maintenance_orders` WHERE `status` IN ('open','in_progress','waiting_parts')");
+$total_maint_resolved = quick_count($pdo, "SELECT COUNT(*) FROM `maintenance_orders` WHERE `status` IN ('resolved','closed')");
+$total_warranties     = quick_count($pdo, "SELECT COUNT(*) FROM `warranties`");
+$active_warranties    = quick_count($pdo, "SELECT COUNT(*) FROM `warranties` WHERE `warranty_status`='active' AND `end_date` >= CURDATE()");
+$expired_warranties   = quick_count($pdo, "SELECT COUNT(*) FROM `warranties` WHERE `warranty_status`='expired' OR `end_date` < CURDATE()");
+$total_bookings       = quick_count($pdo, "SELECT COUNT(*) FROM `bookings`");
+$active_bookings      = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE `status` IN ('pending','approved')");
+$completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE `status` IN ('returned','rejected')");
+
+?>
   <div class="content-wrapper">
     <!-- Content Header (Page header) -->
     <div class="content-header">
       <div class="container-fluid">
         <div class="row mb-2">
           <div class="col-sm-6">
-            <h1 class="m-0 text-dark"><!-- Dashboard v2 --></h1>
-          </div><!-- /.col -->
+            <h1 class="m-0 text-dark">Dashboard</h1>
+          </div>
           <div class="col-sm-6">
             <ol class="breadcrumb float-sm-right">
-              <li class="breadcrumb-item"><a href="#">Home</a></li>
+              <li class="breadcrumb-item"><a href="index.php">Home</a></li>
               <li class="breadcrumb-item active">Dashboard</li>
             </ol>
-          </div><!-- /.col -->
-        </div><!-- /.row -->
-      </div><!-- /.container-fluid -->
+          </div>
+        </div>
+      </div>
     </div>
-    <!-- /.content-header -->
 
     <!-- Main content -->
-    <section class="content" style="min-height:80vh;">
-     
+    <section class="content">
       <div class="container-fluid">
-        <!-- .row -->
+        
+        <!-- Top summary cards -->
         <div class="row">
-
-          <div class="col-xl-3 col-xxl-6 col-sm-6">
-            <div class="info-box bg-danger ">
-              <div class="info-box-content">
-                <span class="info-box-text">Total customer</span>
-                <span class="info-box-number">
-                  <?php 
-                    echo $all_customer = $obj->total_count('member');
-                  ?>
-                </span>
+          <!-- Assets -->
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-info">
+              <div class="inner">
+                <h3><?php echo $total_assets; ?></h3>
+                <p>Assets</p>
               </div>
-              <span class="info-box-icon "><i class="material-symbols-outlined">
-                 supervisor_account</i></span>
-              <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-          </div>
-
-
-          <!-- /.col -->
-          <div class="col-xl-3 col-xxl-6 col-sm-6">
-            <div class="info-box  bg-success">
-              <div class="info-box-content">
-                <span class="info-box-text">Total Suppliers</span>
-                <span class="info-box-number"> 
-                  <?php 
-                    echo $all_customer = $obj->total_count('suppliar');
-                  ?>
-                  </span>
+              <div class="icon">
+                <i class="fas fa-boxes"></i>
               </div>
-               <span class="info-box-icon elevation-1"><i class="material-symbols-outlined">group</i></span>
-              <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-          </div>
-
-          <div class="col-xl-3 col-xxl-6 col-sm-6">
-            <div class="info-box bg-info ">
-             
-              <div class="info-box-content">
-                <span class="info-box-text">Total sells</span>
-                <span class="info-box-number"> 
-                    
-                          <?php  
-                      $stmt = $pdo->prepare("SELECT SUM(`sub_total`) FROM `invoice`");
-                      $stmt->execute();
-                      $res = $stmt->fetch(PDO::FETCH_NUM);
-                      echo $total_sell_amount =  $res[0];
-                  ?>
-                  </span>
-              </div>
-               <span class="info-box-icon elevation-1"><i class="material-symbols-outlined">sell</i></span>
-
-              <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-          </div>
-
-
-          <div class="col-xl-3 col-xxl-6 col-sm-6">
-            <div class="info-box bg-secondary ">
-              
-              <div class="info-box-content">
-                <span class="info-box-text">Total purchase</span>
-                <span class="info-box-number"> 
-                         <?php  
-                      $stmt = $pdo->prepare("SELECT SUM(`purchase_subtotal`) FROM `purchase_products`");
-                      $stmt->execute();
-                      $res = $stmt->fetch(PDO::FETCH_NUM);
-                      echo $total_purchase =  $res[0];
-                  ?>
-                  </span>
-              </div>
-              <span class="info-box-icon elevation-1"><i class="material-symbols-outlined">payments</i></span>
-
-              <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-          </div>
-          <!-- /.col -->
-
-          <!-- fix for small devices only -->
-          <div class="clearfix hidden-md-up"></div>
-
-          <!-- <div class="col-12 col-sm-6 col-md-3">
-            <div class="info-box mb-3">
-              <span class="info-box-icon bg-danger elevation-1"><i class="fas fa-shopping-cart"></i></span>
-
-              <div class="info-box-content">
-                <span class="info-box-text">Pending orders</span>
-                <span class="info-box-number">760</span>
-              </div>
+              <a href="index.php?page=assets_list" class="small-box-footer">Manage Assets <i class="fas fa-arrow-circle-right"></i></a>
             </div>
           </div>
-          <div class="col-12 col-sm-6 col-md-3">
-            <div class="info-box mb-3">
-              <span class="info-box-icon bg-warning elevation-1"><i class="fas fa-shopping-cart"></i></span>
 
-              <div class="info-box-content">
-                <span class="info-box-text">Incomplete Orders</span>
-                <span class="info-box-number">2,000</span>
+          <!-- Maintenance (Open) -->
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-warning">
+              <div class="inner">
+                <h3><?php echo $total_maint_open; ?></h3>
+                <p>Open Maintenance</p>
               </div>
+              <div class="icon">
+                <i class="fas fa-tools"></i>
+              </div>
+              <a href="index.php?page=maintenance_list" class="small-box-footer">View Maintenance <i class="fas fa-arrow-circle-right"></i></a>
             </div>
-          </div> -->
-          <!-- /.col -->
+          </div>
+
+          <!-- Warranties (Active) -->
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-success">
+              <div class="inner">
+                <h3><?php echo $active_warranties; ?></h3>
+                <p>Active Warranties</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-shield-alt"></i>
+              </div>
+              <a href="index.php?page=warranty_list" class="small-box-footer">Manage Warranties <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
+
+          <!-- Bookings (Active) -->
+          <div class="col-lg-3 col-6">
+            <div class="small-box bg-primary">
+              <div class="inner">
+                <h3><?php echo $active_bookings; ?></h3>
+                <p>Active Bookings</p>
+              </div>
+              <div class="icon">
+                <i class="fas fa-calendar-check"></i>
+              </div>
+              <a href="index.php?page=bookings" class="small-box-footer">Go to Bookings <i class="fas fa-arrow-circle-right"></i></a>
+            </div>
+          </div>
         </div>
-        <!-- /.row -->
 
-
+        <!-- Secondary details -->
         <div class="row">
-          <div class=" col-md-6">
-            <div class="info-box bg-cards-1">
-              <div class="info-box-content  text-center text-white">
-                <h2 class="info-box-text">Today</h2>
-                <span class="sell">Sell:
-                    <?php 
-                      $today = date('Y-m-d');
-                        $stmt = $pdo->prepare("SELECT SUM(`net_total`) FROM `invoice` WHERE `order_date` = '$today'");
-                        $stmt->execute();
-                        $res = $stmt->fetch(PDO::FETCH_NUM);
-                        echo $res[0];
-
-                        ?>
-                    
-                </span><br>
-                <span class="buy">Buy:
-                    <?php 
-                      $today = date('Y-m-d');
-                        $stmt = $pdo->prepare("SELECT SUM(`purchase_net_total`) FROM `purchase_products` WHERE `purchase_date` = '$today'");
-                        $stmt->execute();
-                        $res = $stmt->fetch(PDO::FETCH_NUM);
-                        echo $res[0];
-
-                        ?>
-                </span>
-              </div>
-              <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-          </div>
-          <!-- /.col -->
-          <div class=" col-md-6">
-            <div class="info-box bg-cards-2">
-              <div class="info-box-content  text-center">
-                <h2 class="info-box-text">Monthly</h2>
-                <span class="sell">Sell:
-                  <?php 
-                      $start_data = date('Y-m-01-');
-                      $end_date =   date('Y-m-t');
-                        $stmt = $pdo->prepare("SELECT SUM(`net_total`) FROM `invoice` WHERE `order_date` BETWEEN '$start_data' AND  '$end_date' ");
-                        $stmt->execute();
-                        $res = $stmt->fetch(PDO::FETCH_NUM);
-                        echo $res[0];
-
-                        ?>
-                 </span><br>
-                <span class="buy">Buy:
-                  <?php 
-                       $start_data = date('Y-m-01-');
-                      $end_date =   date('Y-m-t');
-                        $stmt = $pdo->prepare("SELECT SUM(`purchase_net_total`) FROM `purchase_products` WHERE `purchase_date` BETWEEN '$start_data' AND  '$end_date'");
-                        $stmt->execute();
-                        $res = $stmt->fetch(PDO::FETCH_NUM);
-                        echo $res[0];
-
-                        ?>
-                </span>
-              </div>
-              <!-- /.info-box-content -->
-            </div>
-            <!-- /.info-box -->
-          </div>
-          <!-- /.col -->
-         
-          
-          <!-- fix for small devices only -->
-          <div class="clearfix hidden-md-up"></div>
-          
-        </div>
-        <!-- /.row -->
-        <div class="row">
-          <div class="col-md-6 col-lg-6">
-             <div class="card">
+          <!-- Maintenance breakdown -->
+          <div class="col-md-6">
+            <div class="card card-outline card-warning">
               <div class="card-header">
-                <b>Factory product stock Alert</b>
+                <h3 class="card-title">Maintenance Overview</h3>
               </div>
-              <div class="card-body">
-                <div class="responsive">
-                  <table class="display dataTable text-center">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>ID</th>
-                        <th>name</th>
-                        <th>Quantity</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <?php 
-                          $stmt = $pdo->prepare("SELECT * FROM `factory_products` WHERE `quantity` <= `alert_quantity` ; ");
-                          $stmt->execute();
-                          $res = $stmt->fetchAll(PDO::FETCH_OBJ);
-                          foreach ($res as $product) {
-                              ?>
-                              <tr>
-                                <td>1</td>
-                                <td><?=$product->product_id;?></td>
-                                <td><?=$product->product_name;?></td>
-                                <td><?=$product->quantity;?></td>
-                              </tr>
-                              <?php 
-                          }
-                          ?>
-                     </tbody>
-                  </table>
-                </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Open / In Progress / Waiting Parts
+                    <span class="badge badge-warning badge-pill"><?php echo $total_maint_open; ?></span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Resolved / Closed
+                    <span class="badge badge-success badge-pill"><?php echo $total_maint_resolved; ?></span>
+                  </li>
+                </ul>
+              </div>
+              <div class="card-footer text-right">
+                <a class="btn btn-sm btn-outline-warning" href="index.php?page=maintenance_list">View All</a>
               </div>
             </div>
           </div>
-          <div class="col-md-6 col-lg-6">
-            <div class="card">
+
+          <!-- Warranty breakdown -->
+          <div class="col-md-6">
+            <div class="card card-outline card-success">
               <div class="card-header">
-                <b>Stock Alert</b>
+                <h3 class="card-title">Warranty Overview</h3>
               </div>
-              <div class="card-body">
-                <div class="responsive">
-                  <table class="display dataTable text-center">
-                    <thead>
-                      <tr>
-                        <th>#</th>
-                        <th>ID</th>
-                        <th>name</th>
-                        <th>Quantity</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <?php 
-                          $stmt = $pdo->prepare("SELECT * FROM `products` WHERE `quantity` <= `alert_quanttity` ; ");
-                          $stmt->execute();
-                          $res = $stmt->fetchAll(PDO::FETCH_OBJ);
-
-                          
-                         
-                          foreach ($res as $product) {
-                              ?>
-                              <tr>
-                                <td>1</td>
-                                <td><?=$product->product_id;?></td>
-                                <td><?=$product->product_name;?></td>
-                                <td><?=$product->quantity;?></td>
-                              </tr>
-                              <?php 
-                          }
-                         
-                          
-
-                        
-                       ?>
-                     
-                    </tbody>
-                  </table>
-                </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Total Warranties
+                    <span class="badge badge-secondary badge-pill"><?php echo $total_warranties; ?></span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Active
+                    <span class="badge badge-success badge-pill"><?php echo $active_warranties; ?></span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Expired
+                    <span class="badge badge-danger badge-pill"><?php echo $expired_warranties; ?></span>
+                  </li>
+                </ul>
+              </div>
+              <div class="card-footer text-right">
+                <a class="btn btn-sm btn-outline-success" href="index.php?page=warranty_list">Manage</a>
               </div>
             </div>
           </div>
         </div>
-      </div><!--/. container-fluid -->
+
+        <!-- Bookings breakdown -->
+        <div class="row">
+          <div class="col-md-12">
+            <div class="card card-outline card-primary">
+              <div class="card-header">
+                <h3 class="card-title">Bookings Overview</h3>
+              </div>
+              <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Total Bookings
+                    <span class="badge badge-secondary badge-pill"><?php echo $total_bookings; ?></span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Active (Pending / Approved)
+                    <span class="badge badge-primary badge-pill"><?php echo $active_bookings; ?></span>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center">
+                    Completed (Returned / Rejected)
+                    <span class="badge badge-light badge-pill"><?php echo $completed_bookings; ?></span>
+                  </li>
+                </ul>
+              </div>
+              <div class="card-footer text-right">
+                <a class="btn btn-sm btn-outline-primary" href="index.php?page=bookings">Open Bookings</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /.container-fluid -->
     </section>
     <!-- /.content -->
   </div>

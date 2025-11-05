@@ -27,6 +27,8 @@ $rows = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 $flashMsg = $_GET['msg'] ?? null;
 $flashType = $_GET['type'] ?? 'info';
 ?>
+<?php $isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin'; ?>
+
 <div class="content-wrapper">
   <div class="content-header">
     <div class="container-fluid">
@@ -71,7 +73,8 @@ $flashType = $_GET['type'] ?? 'info';
                   <td><?= htmlspecialchars(date('Y-m-d', strtotime($r['end_time']))) ?></td>
                   <td><?= htmlspecialchars($r['notes'] ?? '') ?></td>
                   <td class="text-right">
-                    <form action="app/action/booking_update_status.php" method="post" class="d-inline">
+                    <?php if ($isAdmin): ?>
+<form action="app/action/booking_update_status.php" method="post" class="d-inline">
                       <input type="hidden" name="id" value="<?= (int)$rows[$i]['id'] ?>">
                       <input type="hidden" name="action" value="approve">
                       <input type="hidden" name="back" value="bookings_requests">
@@ -87,7 +90,10 @@ $flashType = $_GET['type'] ?? 'info';
                         <i class="fas fa-times"></i> Reject
                       </button>
                     </form>
-                  </td>
+                  
+<?php else: ?>
+  <span class="text-muted small">Awaiting admin approval</span>
+<?php endif; ?></td>
                 </tr>
               <?php endforeach; else: ?>
                 <tr><td colspan="7" class="text-center text-muted">No pending requests.</td></tr>

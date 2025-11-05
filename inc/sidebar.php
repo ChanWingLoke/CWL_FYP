@@ -70,6 +70,15 @@
              </ul>
           </li>
 
+          <!-- Category -->
+          <li class="nav-item">
+            <a href="index.php?page=category" class="nav-link <?php echo $actual_link=='category'?'active':'';?>">
+              <i class="material-symbols-outlined">difference</i><p>
+                 Category
+              </p>
+            </a>
+          </li>
+
           <!-- Warranty -->
           <li class="nav-item">
             <a href="index.php?page=warranty_list" class="nav-link <?= ($current === 'warranty_list') ? 'active' : '' ?>">
@@ -132,14 +141,13 @@
             </a>
           </li>
 
-          <!-- Category
-          <li class="nav-item">
-            <a href="index.php?page=category" class="nav-link <?php echo $actual_link=='category'?'active':'';?>">
-              <i class="material-symbols-outlined">difference</i><p>
-                 Category
-              </p>
-            </a>
-          </li> -->
+          <!-- Users -->
+           <li class="nav-item">
+             <a href="index.php?page=users_list" class="nav-link <?php echo $actual_link=='users_list'?'active':'';?>">
+               <i class="material-symbols-outlined">diversity_3</i>
+               <p>Users</p>
+             </a>
+           </li>
 
           <!-- Buy  -->
            <li class="nav-item has-treeview">
@@ -177,7 +185,7 @@
             </ul>
           </li>
 
-          <!-- Staff  -->
+          <!-- Staff 
            <li class="nav-item has-treeview">
             <a href="#" class="nav-link <?php 
               if ($actual_link == 'add_stuff' || $actual_link =='staff_list') {echo "active";
@@ -205,7 +213,7 @@
                 </a>
               </li>
             </ul>
-          </li>
+          </li> -->
         
           <!-- Reports -->
            <li class="nav-item has-treeview">

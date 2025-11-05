@@ -46,7 +46,9 @@ catch (Throwable $e) {
 
 // Normalize expired status (optional)
 try {
-  $db->exec("UPDATE warranties SET warranty_status='expired' WHERE end_date < CURDATE() AND warranty_status <> 'expired'");
+  $db->exec("UPDATE warranties 
+             SET warranty_status='expired' 
+             WHERE end_date < CURDATE() AND warranty_status <> 'expired'");
 } catch (Throwable $e) { /* ignore */ }
 
 // Top server-side filter tabs

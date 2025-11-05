@@ -79,7 +79,8 @@ $flashType = $_GET['type'] ?? 'info';
                   <td><span class="badge <?= $cls ?>"><?= ucfirst($r['status']) ?></span></td>
                   <td><?= htmlspecialchars($r['notes'] ?? '') ?></td>
                   <td class="text-right">
-                    <?php if ($r['status'] === 'pending'): ?>
+                    <?php $isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin'; ?>
+                    <?php if ($isAdmin && $r['status'] === 'pending'): ?>
                       <form action="app/action/booking_update_status.php" method="post" class="d-inline">
                         <input type="hidden" name="id" value="<?= (int)$rows[$i]['id'] ?>">
                         <input type="hidden" name="action" value="approve">

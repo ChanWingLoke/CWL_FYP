@@ -158,10 +158,10 @@ try {
             <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title mb-0"><b>Bookings Calendar</b></h3>
               <div class="status-legend">
-                <span class="badge-status pending">Pending</span>
+                <!-- <span class="badge-status pending">Pending</span>
                 <span class="badge-status approved">Approved</span>
                 <span class="badge-status rejected">Rejected</span>
-                <span class="badge-status returned">Returned</span>
+                <span class="badge-status returned">Returned</span> -->
               </div>
             </div>
             <div class="card-body">
@@ -246,8 +246,8 @@ try {
             </div>
             <div class="card-body">
               <form method="post" autocomplete="off" id="booking-form">
-  <input type="hidden" name="do_booking" value="1">
-  <input type="hidden" name="expected_user_id" value="">
+                <input type="hidden" name="do_booking" value="1">
+                <input type="hidden" name="expected_user_id" value="">
                 <div class="form-group">
                   <label>Asset</label>
                   <select name="asset_id" class="form-control select2" required>
