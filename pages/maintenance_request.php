@@ -1,144 +1,105 @@
 <?php
-// pages/maintenance_request.php
-
-// Require login
-if (!isset($_SESSION['user_id'])) {
-  header('Location: login.php');
-  exit;
-}
-
-// Connect to DB
-$db = $pdo ?? ($obj->pdo ?? null);
-if (!$db) {
-  die('<div class="alert alert-danger m-3">Database connection missing.</div>');
-}
-
-// Detect assets table
-$productTable = 'product';
-try { $db->query("SELECT 1 FROM `product` LIMIT 1"); }
-catch (Throwable $e) {
-  foreach (['products','tbl_product','items','assets'] as $t) {
-    try { $db->query("SELECT 1 FROM `{$t}` LIMIT 1"); $productTable = $t; break; }
-    catch (Throwable $ignored) {}
-  }
-}
-
-// Load data for selects
-$assets = $db->query("SELECT id, product_name FROM `$productTable` ORDER BY product_name ASC")->fetchAll(PDO::FETCH_ASSOC);
-$users  = $db->query("SELECT id, username FROM user ORDER BY username ASC")->fetchAll(PDO::FETCH_ASSOC);
-
-// Handle submission
-$flash = null;
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  try {
-    $asset_id  = (int)$_POST['asset_id'];
-    $title     = trim($_POST['title']);
-    $desc      = trim($_POST['description']);
-    $priority  = $_POST['priority'] ?? 'medium';
-    $due_date  = $_POST['due_date'] ?? null;
-    $requested_by = $_SESSION['user_id'];
-    $assigned_to  = (int)($_POST['assigned_to'] ?? 0);
-
-    if (!$asset_id || !$title) throw new Exception("Please fill all required fields.");
-
-    $stmt = $db->prepare("
-      INSERT INTO maintenance_orders (asset_id, title, description, priority, status, requested_by, assigned_to, requested_date, due_date)
-      VALUES (:asset, :title, :desc, :prio, 'open', :req_by, :assign, NOW(), :due)
-    ");
-    $stmt->execute([
-      ':asset' => $asset_id,
-      ':title' => $title,
-      ':desc'  => $desc,
-      ':prio'  => $priority,
-      ':req_by'=> $requested_by,
-      ':assign'=> $assigned_to ?: null,
-      ':due'   => $due_date ?: null
-    ]);
-
-    $flash = ['type' => 'success', 'msg' => 'Maintenance request submitted successfully.'];
-  } catch (Throwable $e) {
-    $flash = ['type' => 'danger', 'msg' => 'Error: ' . $e->getMessage()];
-  }
-}
+/**
+ * Fresh Maintenance Module (drop-in)
+ * Stack: AdminLTE + jQuery + PDO (via app/init.php loaded by inc/header.php)
+ * Routes: index.php?page=maintenance_list, maintenance_request
+ * Actions: app/action/maintenance_save.php, maintenance_update.php, maintenance_view.php, maintenance_delete.php
+ */
 ?>
 
+<?php
+if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
+
+
+// Resolve PDO ($pdo or $obj->pdo)
+$db = null;
+if (isset($pdo) && $pdo)        { $db = $pdo; }
+elseif (isset($obj) && isset($obj->pdo)) { $db = $obj->pdo; }
+
+if (!$db) {
+  die('<div class="content-wrapper"><section class="content"><div class="container-fluid"><div class="alert alert-danger mt-3">Database connection not found.</div></div></section></div>');
+}
+
+// Detect product table: 'products' or 'product' (fall back to 'products')
+$productTable = 'products';
+try {
+  $db->query("SELECT 1 FROM `products` LIMIT 1");
+} catch (Throwable $e) {
+  try { $db->query("SELECT 1 FROM `product` LIMIT 1"); $productTable = 'product'; }
+  catch (Throwable $e2) {}
+}
+
+
+// Fetch assets for dropdown
+$assets = $db->query("SELECT id, product_name FROM `{$productTable}` ORDER BY product_name ASC LIMIT 1000")->fetchAll(PDO::FETCH_ASSOC);
+?>
 <div class="content-wrapper">
   <div class="content-header">
     <div class="container-fluid">
-      <h1 class="m-0 text-dark">New Maintenance Request</h1>
-      <ol class="breadcrumb float-sm-right">
-        <li class="breadcrumb-item"><a href="index.php">Home</a></li>
-        <li class="breadcrumb-item"><a href="index.php?page=maintenance_list">Maintenance</a></li>
-        <li class="breadcrumb-item active">New Request</li>
-      </ol>
+      <div class="row mb-2">
+        <div class="col-sm-6"><h1 class="m-0 text-dark">New Maintenance Request</h1></div>
+        <div class="col-sm-6">
+          <ol class="breadcrumb float-sm-right">
+            <li class="breadcrumb-item"><a href="index.php">Home</a></li>
+            <li class="breadcrumb-item"><a href="index.php?page=maintenance_list">Maintenance</a></li>
+            <li class="breadcrumb-item active">New Request</li>
+          </ol>
+        </div>
+      </div>
     </div>
   </div>
 
   <section class="content">
     <div class="container-fluid">
-      <?php if ($flash): ?>
-        <div class="alert alert-<?= htmlspecialchars($flash['type']) ?>"><?= htmlspecialchars($flash['msg']) ?></div>
-      <?php endif; ?>
-
-      <div class="card">
-        <div class="card-header"><b>Create Request</b></div>
+      <form action="app/action/maintenance_save.php" method="post" class="card card-outline card-primary">
         <div class="card-body">
-          <form method="post" autocomplete="off">
-            <div class="form-group">
+          <div class="form-row">
+            <div class="form-group col-md-6">
               <label>Asset</label>
               <select name="asset_id" class="form-control" required>
-                <option value="">-- Select Asset --</option>
+                <option value="">-- Select asset --</option>
                 <?php foreach ($assets as $a): ?>
-                  <option value="<?= (int)$a['id'] ?>"><?= htmlspecialchars($a['product_name']) ?></option>
+                  <option value="<?= (int)$a['id'] ?>"><?= htmlspecialchars($a['product_name'] ?: ('#'.$a['id'])) ?></option>
                 <?php endforeach; ?>
               </select>
             </div>
-
-            <div class="form-group">
-              <label>Title</label>
-              <input type="text" name="title" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-              <label>Description</label>
-              <textarea name="description" class="form-control" rows="3"></textarea>
-            </div>
-
-            <div class="form-group">
+            <div class="form-group col-md-6">
               <label>Priority</label>
-              <select name="priority" class="form-control">
+              <select name="priority" class="form-control" required>
                 <option value="low">Low</option>
-                <option value="medium" selected>Medium</option>
+                <option value="medium">Medium</option>
                 <option value="high">High</option>
-                <option value="urgent">Urgent</option>
+                <option value="critical">Critical</option>
               </select>
             </div>
+          </div>
 
-            <div class="form-group">
-              <label>Assign To</label>
-              <select name="assigned_to" class="form-control">
-                <option value="">-- Optional --</option>
-                <?php foreach ($users as $u): ?>
-                  <option value="<?= (int)$u['id'] ?>"><?= htmlspecialchars($u['username']) ?></option>
-                <?php endforeach; ?>
-              </select>
-            </div>
+          <div class="form-group">
+            <label>Title</label>
+            <input type="text" name="title" class="form-control" maxlength="150" required>
+          </div>
 
-            <div class="form-group">
+          <div class="form-group">
+            <label>Description</label>
+            <textarea name="description" class="form-control" rows="4" placeholder="Describe the issue..." required></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
               <label>Reported Date</label>
-              <input type="text" class="form-control" value="<?= date('Y-m-d H:i:s') ?>" readonly>
-              <small class="text-muted">Automatically recorded as the current date and time.</small>
+              <input type="date" name="requested_date" class="form-control" value="<?= date('Y-m-d') ?>" required>
             </div>
-
-            <div class="form-group">
-              <label>Due Date</label>
+            <div class="form-group col-md-6">
+              <label>Due Date (optional)</label>
               <input type="date" name="due_date" class="form-control">
             </div>
-
-            <button type="submit" class="btn btn-primary btn-block">Submit Request</button>
-          </form>
+          </div>
         </div>
-      </div>
+        <div class="card-footer text-right">
+          <a href="index.php?page=maintenance_list" class="btn btn-secondary">Cancel</a>
+          <button type="submit" class="btn btn-primary">Save Request</button>
+        </div>
+      </form>
     </div>
   </section>
 </div>
