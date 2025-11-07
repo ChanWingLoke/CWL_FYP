@@ -119,7 +119,7 @@ function badgeClass($status) {
             class="btn btn-filter btn-sm <?= $filter==='all'?'btn-secondary active':'btn-outline-secondary' ?>">All</a>
         </div>
 
-        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#warrantyModal">
+        <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalWarrantyAdd">
           <i class="fas fa-plus"></i> Add Warranty
         </button>
       </div>
@@ -196,7 +196,7 @@ function badgeClass($status) {
                     <button
                       class="btn btn-sm btn-info"
                       data-toggle="modal"
-                      data-target="#warrantyModal"
+                      data-target="#modalWarrantyEdit"
                       data-id="<?= (int)$r['id'] ?>"
                       data-asset="<?= (int)$r['asset_id'] ?>"
                       data-vendor="<?= htmlspecialchars($r['vendor_name'] ?? '', ENT_QUOTES) ?>"
@@ -223,67 +223,7 @@ function badgeClass($status) {
   </section>
 </div>
 
-<!-- Add/Edit Modal -->
-<div class="modal fade" id="warrantyModal" tabindex="-1" role="dialog" aria-hidden="true">
-  <div class="modal-dialog modal-md modal-dialog-centered" role="document">
-    <div class="modal-content">
-      <div class="modal-header py-2">
-        <h5 class="modal-title">Add Warranty</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close"
-                style="outline:none;border:0;background:transparent;font-size:28px;line-height:1;">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <form action="app/action/warranty_save.php" method="post" autocomplete="off">
-        <div class="modal-body">
-          <input type="hidden" name="id" id="w_id" value="">
-          <div class="form-group">
-            <label>Asset</label>
-            <select name="asset_id" id="w_asset" class="form-control select2" required>
-              <option value="">Select asset</option>
-              <?php foreach ($assets as $a): ?>
-                <option value="<?= (int)$a['id'] ?>"><?= htmlspecialchars($a['product_name']) ?></option>
-              <?php endforeach; ?>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Vendor</label>
-            <input type="text" name="vendor_name" id="w_vendor" class="form-control" placeholder="e.g. Dell, Lenovo, etc.">
-          </div>
-          <div class="form-group">
-            <label>Start / End</label>
-            <div class="d-flex">
-              <input type="text"
-                    name="start_date" id="w_start"
-                    class="form-control mr-2 datepicker"
-                    placeholder="YYYY-MM-DD"
-                    inputmode="numeric"
-                    pattern="^\d{4}-\d{2}-\d{2}$"
-                    title="Use format YYYY-MM-DD"
-                    autocomplete="off"
-                    required>
 
-              <input type="text"
-                    name="end_date" id="w_end"
-                    class="form-control datepicker"
-                    placeholder="YYYY-MM-DD"
-                    inputmode="numeric"
-                    pattern="^\d{4}-\d{2}-\d{2}$"
-                    title="Use format YYYY-MM-DD"
-                    autocomplete="off"
-                    required>
-            </div>
-            <small class="text-muted">Format: <code>YYYY-MM-DD</code></small>
-          </div>
-        </div>
-        <div class="modal-footer py-2">
-          <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancel</button>
-          <button type="submit" class="btn btn-primary btn-sm">Save</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
 
 <style>
 /* Consistent filter button styling like Loans */
@@ -456,110 +396,6 @@ window.addEventListener('DOMContentLoaded', function () {
     })();
 
 
-    var $modal = $('#warrantyModal');
-
-    $modal
-      .on('hidden.bs.modal', function(){
-        $('#w_id').val('');
-        $('#w_asset').val('').trigger('change');
-        $('#w_vendor').val('');
-        $('#w_start').val('');
-        $('#w_end').val('');
-        $modal.find('.modal-title').text('Add Warranty');
-      })
-      .on('shown.bs.modal', function(){
-        var $start = $('#w_start');
-        var $end   = $('#w_end');
-
-        try {
-          if ($start.data('datepicker')) $start.datepicker('destroy');
-          if ($end.data('datepicker'))   $end.datepicker('destroy');
-        } catch(e) {}
-        $start.datepicker({
-          format: 'yyyy-mm-dd',
-          autoclose: true,
-          todayHighlight: true,
-          orientation: 'bottom auto',
-          container: '#warrantyModal'
-        });
-        $end.datepicker({
-          format: 'yyyy-mm-dd',
-          autoclose: true,
-          todayHighlight: true,
-          orientation: 'bottom auto',
-          container: '#warrantyModal'
-        });
-
-        $start.off('changeDate.warr').on('changeDate.warr', function (e) {
-          $end.datepicker('setStartDate', e.date);
-          var sD = $start.datepicker('getDate');
-          var eD = $end.datepicker('getDate');
-          if (eD && sD && eD < sD) { $end.datepicker('setDate', sD); }
-        });
-        $end.off('changeDate.warr').on('changeDate.warr', function (e) {
-          $start.datepicker('setEndDate', e.date);
-        });
-
-        function normalizeYMD(s) {
-          var m = String(s || '').match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-          if (!m) return s;
-          var y = m[1], mo = ('00'+m[2]).slice(-2), d = ('00'+m[3]).slice(-2);
-          return [y, mo, d].join('-');
-        }
-        $start.add($end).off('blur.warr').on('blur.warr', function(){
-          var $i = $(this), norm = normalizeYMD($i.val());
-          if (norm !== $i.val()) $i.val(norm);
-        });
-
-        var $assetSel = $('#w_asset');
-        if ($.fn.select2) {
-          if ($assetSel.data('select2')) { try { $assetSel.select2('destroy'); } catch(e){} }
-          $assetSel.select2({
-            width: '100%',
-            tags: false,
-            placeholder: 'Select asset',
-            minimumResultsForSearch: 0,
-            dropdownParent: $modal,
-            allowClear: true
-          });
-
-          (function(){
-            var ModalProto = $.fn.modal && $.fn.modal.Constructor && $.fn.modal.Constructor.prototype;
-            var prop = null, saved = null;
-            if (ModalProto) {
-              if (typeof ModalProto.enforceFocus === 'function') { prop = 'enforceFocus'; }
-              else if (typeof ModalProto._enforceFocus === 'function') { prop = '_enforceFocus'; }
-              saved = prop ? ModalProto[prop] : null;
-            }
-            $assetSel.off('select2:open.wasset').on('select2:open.wasset', function(){
-              try { if (prop) { ModalProto[prop] = function(){}; } } catch(e){}
-              setTimeout(function(){
-                var el = document.querySelector('.select2-container--open .select2-search__field');
-                if (el) el.focus();
-              }, 0);
-            });
-            $assetSel.off('select2:close.wasset').on('select2:close.wasset', function(){
-              try { if (prop && saved) { ModalProto[prop] = saved; } } catch(e){}
-            });
-          })();
-        }
-      });
-
-    $(document).on('click', '.btn-edit', function(){
-      var id    = $(this).data('id');
-      var asset = $(this).data('asset');
-      var vend  = $(this).data('vendor');
-      var start = $(this).data('start');
-      var end   = $(this).data('end');
-      $('#w_id').val(id);
-      $('#w_asset').val(asset).trigger('change');
-      $('#w_vendor').val(vend);
-      $('#w_start').val(start);
-      $('#w_end').val(end);
-      $modal.find('.modal-title').text('Edit Warranty');
-      $modal.modal('show');
-    });
-
     // === FILTER BAR: Client-side Search / Clear (no page reload) ===
     (function(){
       function parseYMD(s){
@@ -603,5 +439,225 @@ window.addEventListener('DOMContentLoaded', function () {
     })();
 
   })(jQuery);
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var $ = window.jQuery;
+  if (!$) return;
+
+  // ADD modal behavior
+  var $add = $('#modalWarrantyAdd');
+  if ($add.length) {
+    $add.on('hidden.bs.modal', function(){
+      $('#a_asset').val('').trigger('change');
+      $('#a_vendor').val('');
+      $('#a_start').val('');
+      $('#a_end').val('');
+    });
+  }
+
+  // EDIT button -> open Edit modal with data
+    var id    = $btn.data('id') || $btn.closest('tr').data('id') || $btn.closest('[data-id]').data('id') || '';
+  var asset = $btn.data('asset') || $btn.closest('tr').data('asset') || '';
+  var vend  = $btn.data('vendor') || $btn.closest('tr').data('vendor') || '';
+  var start = $btn.data('start') || $btn.closest('tr').data('start') || '';
+  var end   = $btn.data('end')   || $btn.closest('tr').data('end')   || '';
+
+  // Stash id on the modal as extra safety
+  var     // Populate fields
+  $('#e_id').val(id);
+  $('#e_asset').val(asset).trigger('change');
+  $('#e_vendor').val(vend || '');
+  $('#e_start').val(start || '');
+  $('#e_end').val(end || '');
+
+  });
+
+// Guard: prevent submitting Edit without an id
+$(document).on('submit', '#modalWarrantyEdit form', function(e){
+  var id = $('#e_id').val() || $('#modalWarrantyEdit').data('row-id') || '';
+  if (!id) {
+    e.preventDefault();
+    alert('Edit failed: missing warranty ID. Please refresh the page and try again.');
+    return false;
+  }
+  return true;
+});
+    var asset = $(this).data('asset');
+    var vend  = $(this).data('vendor');
+    var start = $(this).data('start');
+    var end   = $(this).data('end');
+
+    $('#e_id').val(id);
+    $('#e_asset').val(asset).trigger('change');
+    $('#e_vendor').val(vend || '');
+    $('#e_start').val(start || '');
+    $('#e_end').val(end || '');
+
+    $('#modalWarrantyEdit').modal('show');
+  });
+});
+</script>
+
+<?php include 'warranty_modal_add.php'; ?>
+<?php include 'warranty_modal_edit.php'; ?>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var $ = window.jQuery;
+  if (!$) return;
+
+  // Initialize bootstrap-datepicker on open for both modals
+  $('#modalWarrantyAdd, #modalWarrantyEdit').on('shown.bs.modal', function(){
+    var $scope = $(this);
+    // Only init once per input
+    $scope.find('.datepicker').each(function(){
+      var $input = $(this);
+      if (!$input.data('datepicker')) {
+        try {
+          $input.datepicker({
+            format: 'yyyy-mm-dd',
+            autoclose: true,
+            todayHighlight: true
+          });
+        } catch(e) { /* plugin missing? fail quietly */ }
+      }
+    });
+  });
+});
+</script>
+
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var $ = window.jQuery;
+  if (!$) return;
+  $('#modalWarrantyAdd, #modalWarrantyEdit').on('shown.bs.modal', function(){
+    var $scope = $(this);
+    $scope.find('.datepicker').each(function(){
+      var $input = $(this);
+      if (!$input.data('datepicker')) {
+        try {
+          $input.datepicker({ format:'yyyy-mm-dd', autoclose:true, todayHighlight:true });
+        } catch(e) {}
+      }
+    });
+  });
+});
+</script>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var $ = window.jQuery;
+  if (!$) return;
+
+  // When the Edit modal is about to be shown, pull data from the triggering element
+  $('#modalWarrantyEdit').on('show.bs.modal', function(e){
+    var $trigger = $(e.relatedTarget || null);
+    if (!$trigger || !$trigger.length) return;
+
+    var id    = $trigger.data('id')    || $trigger.closest('tr').data('id')    || '';
+    var asset = $trigger.data('asset') || $trigger.closest('tr').data('asset') || '';
+    var vend  = $trigger.data('vendor')|| $trigger.closest('tr').data('vendor')|| '';
+    var start = $trigger.data('start') || $trigger.closest('tr').data('start') || '';
+    var end   = $trigger.data('end')   || $trigger.closest('tr').data('end')   || '';
+
+    // Fill fields
+    $('#e_id').val(id);
+    $('#e_asset').val(asset).trigger('change');
+    $('#e_vendor').val(vend || '');
+    $('#e_start').val(start || '');
+    $('#e_end').val(end || '');
+
+    // Stash id on modal as backup for submit guard
+    $(this).data('row-id', id || '');
+  });
+
+  // Fallback: clicking any element that targets the edit modal should not navigate
+  $(document).on('click', '[data-target="#modalWarrantyEdit"]', function(ev){
+    ev.preventDefault();
+    // Let Bootstrap open the modal; 'show.bs.modal' will populate fields
+  });
+
+  // Guard: prevent submitting Edit without an id
+  $(document).on('submit', '#modalWarrantyEdit form', function(e){
+    var id = $('#e_id').val() || $('#modalWarrantyEdit').data('row-id') || '';
+    if (!id) {
+      e.preventDefault();
+      alert('Edit failed: missing warranty ID. Please refresh and try again.');
+      return false;
+    }
+    return true;
+  });
+
+  // Initialize datepickers when either modal opens
+  $('#modalWarrantyAdd, #modalWarrantyEdit').on('shown.bs.modal', function(){
+    var $scope = $(this);
+    $scope.find('.datepicker').each(function(){
+      var $input = $(this);
+      if (!$input.data('datepicker')) {
+        try {
+          $input.datepicker({ format: 'yyyy-mm-dd', autoclose: true, todayHighlight: true });
+        } catch(e) {}
+      }
+    });
+  });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  var $ = window.jQuery;
+  if (!$) return;
+
+  // Direct, simple handlers for Search / Clear
+  $('#fltApply').off('click.fix').on('click.fix', function(e){
+    e.preventDefault();
+    // If you have a server-side filter form, submit it; else trigger client-side filter
+    // Here we just trigger the existing client-side routine if present
+    var asset = ($('#fltAsset').val() || '').toString().toLowerCase();
+    var vend  = ($('#fltVendor').val() || '').toString().toLowerCase();
+    var d1    = $('#fltEndFrom').val();
+    var d2    = $('#fltEndTo').val();
+    function parseYMD(s){
+      var m = String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if(!m) return null;
+      return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+    }
+    var dt1 = parseYMD(d1), dt2 = parseYMD(d2);
+
+    $('#warrantyTable tbody tr').each(function(){
+      var $tr = $(this);
+      var a = ($tr.data('asset') || '').toString().toLowerCase();
+      var v = ($tr.data('vendor')|| '').toString().toLowerCase();
+      var e = ($tr.data('end')   || '').toString();
+
+      var ok = true;
+      if (asset && a !== asset) ok = false;
+      if (vend && v.indexOf(vend) === -1) ok = false;
+      if (ok && (dt1 || dt2)) {
+        var de = parseYMD(e);
+        if (!de) ok = false;
+        if (ok && dt1 && de < dt1) ok = false;
+        if (ok && dt2 && de > dt2) ok = false;
+      }
+      $tr.toggle(ok);
+    });
+  });
+
+  $('#fltClear').off('click.fix').on('click.fix', function(e){
+    e.preventDefault();
+    if ($.fn.select2) { $('#fltAsset').val('').trigger('change'); } else { $('#fltAsset').val(''); }
+    $('#fltVendor').val('');
+    $('#fltEndFrom').val('');
+    $('#fltEndTo').val('');
+    $('#warrantyTable tbody tr').show();
+  });
 });
 </script>

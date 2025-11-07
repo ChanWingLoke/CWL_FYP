@@ -8,9 +8,22 @@
 
 require_once '../init.php';
 
+// Robust ID and mode handling
+$mode = isset($_POST['mode']) ? strtolower(trim($_POST['mode'])) : '';
+$id = 0;
+if (isset($_POST['id'])) { $id = (int)$_POST['id']; }
+elseif (isset($_POST['warranty_id'])) { $id = (int)$_POST['warranty_id']; }
+elseif (isset($_POST['e_id'])) { $id = (int)$_POST['e_id']; }
+
+
 // Admin only
 if (!isset($_SESSION['user_role']) || strtolower($_SESSION['user_role']) !== 'admin') {
   header('Location: ../../index.php?page=warranty_list&type=danger&msg=' . urlencode('Permission denied')); exit;
+}
+
+if ($mode === 'edit' && $id <= 0) {
+  header('Location: ../../index.php?page=warranty_list&type=danger&msg=' . urlencode('Edit failed: missing warranty ID.'));
+  exit;
 }
 
 // Get PDO
@@ -23,7 +36,7 @@ if (!$db) {
 
 try {
   // Inputs
-  $id          = isset($_POST['id']) ? (int)$_POST['id'] : 0;
+  // (id captured above)
   $asset_id    = $_POST['asset_id'] ?? '';
   $vendor_name = trim($_POST['vendor_name'] ?? '');
   $start_date  = trim($_POST['start_date'] ?? '');

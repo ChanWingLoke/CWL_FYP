@@ -6,6 +6,8 @@
  */
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 
+$isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
+
 // Resolve PDO
 $db = null;
 if (isset($pdo) && $pdo)        { $db = $pdo; }
@@ -199,7 +201,7 @@ function badgeStatus($s) {
                 <td><?= htmlspecialchars($due) ?></td>
                 <td class="text-right">
                   <div class="btn-group btn-group-sm" role="group">
-                    <?php if ($r['status'] === 'resolved'): ?>
+                    <?php if ($isAdmin && $r['status'] === 'resolved'): ?>
                     <form action="app/action/maintenance_update.php" method="post" class="d-inline" onsubmit="return confirm('Permanently close this request?');">
                       <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
                       <input type="hidden" name="action" value="close">
@@ -225,13 +227,14 @@ function badgeStatus($s) {
                         <i class="fas fa-check"></i> Resolve
                       </button>
                     </form>
-                    <form action="app/action/warranty_delete.php" method="post" class="d-inline" 
+                    <?php if ($isAdmin): ?>
+<form action="app/action/maintenance_delete.php" method="post" class="d-inline" 
                           onsubmit="return confirm('Are you sure you want to delete this warranty?');">
                       <input type="hidden" name="id" value="<?= $r['id'] ?>">
                       <button type="submit" class="btn btn-outline-danger btn-sm">
-                        <i class="fas fa-trash"></i> Delete
-                      </button>
+                        <i class="fas fa-trash"></i>Delete</button>
                     </form>
+<?php endif; ?>
                   </div>
                 </td>
               </tr>

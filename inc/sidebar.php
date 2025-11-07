@@ -52,33 +52,6 @@ $isAssetNewAddActive  = ($pg === 'new_asset_add')   ? ' active' : '';
             </a>
           </li>
 
-          <!-- New Asset -->
-          <li class="nav-item<?php echo $isAssetNewOpen; ?>">
-            <a href="#" class="nav-link<?php echo $isAssetNewActive; ?>">
-              <i class="material-symbols-outlined">inventory</i><p>
-              <p>
-                Assets (New)
-                <i class="right fas fa-angle-left"></i>
-              </p>
-            </a>
-
-            <ul class="nav nav-treeview">
-              <li class="nav-item">
-                <a href="index.php?page=new_assets_list" class="nav-link<?php echo $isAssetNewListActive; ?>">
-                  
-                  <p>Asset List</p>
-                </a>
-              </li>
-              <li class="nav-item">
-                <a href="index.php?page=new_asset_add" class="nav-link<?php echo $isAssetNewAddActive; ?>">
-                  
-                  <p>Add Asset</p>
-                </a>
-              </li>
-            </ul>
-          </li>
-
-
           <!-- Assets -->
           <li class="nav-item has-treeview">
             <a href="#" class="nav-link <?php 

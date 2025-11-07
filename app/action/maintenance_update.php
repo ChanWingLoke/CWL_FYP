@@ -3,12 +3,21 @@
 require_once __DIR__ . '/../../app/init.php';
 if (!isset($_SESSION['user_id'])) { header('Location: ../../login.php'); exit; }
 
+$isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
+
 $db = isset($pdo) && $pdo ? $pdo : ($obj->pdo ?? null);
 if (!$db) { die('DB'); }
 
 $id     = (int)($_POST['id'] ?? 0);
 $action = strtolower($_POST['action'] ?? '');
 $allowed = ['start','resolve','close','reopen'];
+
+// Enforce admin-only actions
+if (in_array($action, ['close'], true) && !$isAdmin) {
+  header('Location: ../../index.php?page=maintenance_list&type=danger&msg=Not+authorized+to+close');
+  exit;
+}
+
 
 if (!$id || !in_array($action, $allowed, true)) {
   header('Location: ../../index.php?page=maintenance_list&type=danger&msg=Invalid+request'); exit;

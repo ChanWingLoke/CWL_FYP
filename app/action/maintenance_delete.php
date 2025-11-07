@@ -11,6 +11,9 @@
 require_once __DIR__ . '/../../app/init.php';
 if (!isset($_SESSION['user_id'])) { header('Location: ../../login.php'); exit; }
 
+$__isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
+if (!$__isAdmin) { header('Location: ../../index.php?page=maintenance_list&type=danger&msg=Not+authorized+to+delete'); exit; }
+
 $db = isset($pdo) && $pdo ? $pdo : ($obj->pdo ?? null);
 if (!$db) { die('DB'); }
 
