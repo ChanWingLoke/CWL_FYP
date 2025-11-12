@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 04, 2025 at 10:54 AM
+-- Generation Time: Nov 11, 2025 at 02:32 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -45,7 +45,7 @@ CREATE TABLE `bookings` (
 
 INSERT INTO `bookings` (`id`, `asset_id`, `user_id`, `start_time`, `end_time`, `notes`, `status`, `created_at`, `updated_at`) VALUES
 (2, 4, 22014396, '2025-10-20 00:00:00', '2025-10-30 23:59:59', 'hihi', 'returned', '2025-10-20 08:24:25', '2025-11-04 06:41:26'),
-(3, 2, 22014396, '2025-10-26 00:00:00', '2025-10-30 23:59:59', '', 'approved', '2025-10-26 12:40:57', '2025-11-04 06:41:44'),
+(3, 2, 22014396, '2025-10-26 00:00:00', '2025-10-30 23:59:59', '', 'returned', '2025-10-26 12:40:57', '2025-11-06 18:43:31'),
 (4, 4, 22014396, '2025-10-27 00:00:00', '2025-10-29 23:59:59', '', 'returned', '2025-10-26 14:07:35', '2025-11-04 06:41:52'),
 (5, 3, 22014396, '2025-11-03 00:00:00', '2025-11-04 23:59:59', '', 'rejected', '2025-11-03 10:43:52', '2025-11-04 06:42:01'),
 (6, 3, 22014396, '2025-11-03 00:00:00', '2025-11-04 23:59:59', '', 'rejected', '2025-11-03 10:54:44', '2025-11-04 06:42:08'),
@@ -53,12 +53,10 @@ INSERT INTO `bookings` (`id`, `asset_id`, `user_id`, `start_time`, `end_time`, `
 (8, 3, 22014396, '2025-11-04 00:00:00', '2025-11-05 23:59:59', '', 'rejected', '2025-11-04 07:53:24', '2025-11-04 08:07:34'),
 (9, 3, 22014396, '2025-11-04 00:00:00', '2025-11-05 23:59:59', '', 'rejected', '2025-11-04 08:07:48', '2025-11-04 08:08:47'),
 (10, 3, 22014396, '2025-11-04 00:00:00', '2025-11-05 23:59:59', '', 'rejected', '2025-11-04 08:08:57', '2025-11-04 08:12:22'),
-(11, 3, 22014396, '2025-11-04 00:00:00', '2025-11-05 23:59:59', '', 'approved', '2025-11-04 08:31:17', '2025-11-04 08:31:37'),
-(14, 3, 22014396, '2025-11-10 00:00:00', '2025-11-11 23:59:59', '', 'rejected', '2025-11-04 08:36:43', '2025-11-04 08:36:57'),
-(15, 3, 22014396, '2025-11-09 00:00:00', '2025-11-10 23:59:59', '', 'rejected', '2025-11-04 08:51:45', '2025-11-04 08:53:15'),
-(18, 3, 22014396, '2025-11-18 00:00:00', '2025-11-19 23:59:59', '', 'rejected', '2025-11-04 09:23:28', '2025-11-04 09:23:40'),
-(19, 3, 22014396, '2025-11-06 00:00:00', '2025-11-07 23:59:59', '', 'rejected', '2025-11-04 09:41:20', '2025-11-04 09:41:47'),
-(20, 3, 22014396, '2025-11-06 00:00:00', '2025-11-07 23:59:59', '', 'pending', '2025-11-04 09:42:00', NULL);
+(22, 4, 22014396, '2025-11-06 00:00:00', '2025-11-07 23:59:59', 'book for......', 'returned', '2025-11-05 06:44:14', '2025-11-05 07:32:10'),
+(26, 4, 22014396, '2025-11-07 00:00:00', '2025-11-10 23:59:59', '', 'rejected', '2025-11-07 07:16:46', '2025-11-11 13:25:37'),
+(29, 7, 22014396, '2025-11-07 00:00:00', '2025-11-09 23:59:59', '', 'returned', '2025-11-07 09:47:29', '2025-11-07 09:49:23'),
+(30, 8, 22014396, '2025-11-07 00:00:00', '2025-11-10 23:59:59', '', 'returned', '2025-11-07 11:52:05', '2025-11-11 13:25:40');
 
 -- --------------------------------------------------------
 
@@ -82,7 +80,8 @@ CREATE TABLE `catagory` (
 INSERT INTO `catagory` (`id`, `name`, `description`, `created_by`, `update_at`, `create_at`) VALUES
 (1, 'Processors', 'A processor (CPU) is the logic circuitry that responds to and processes the basic instructions that drive a computer. The CPU is seen as the main and most crucial integrated circuitry (IC) chip in a c', 1, NULL, '2023-07-21 12:29:08'),
 (2, 'Motherboards', 'A motherboard (also called mainboard, main circuit board, MB, mboard, backplane board, base board, system board, mobo; or in Apple computers logic board)', 1, NULL, '2023-07-21 12:29:35'),
-(3, 'RAM (Memory)', 'Random-access memory is a form of computer memory that can be read and changed in any order, typically used to store working data and machine code.', 1, NULL, '2023-07-21 12:37:27');
+(3, 'RAM (Memory)', 'Random-access memory is a form of computer memory that can be read and changed in any order, typically used to store working data and machine code.', 1, NULL, '2023-07-21 12:37:27'),
+(4, 'Monitor', 'Monitor is a display device that shows visual information from a computer, like a screen on a television, but designed to display data and images from a computer rather than television broadcasts.', 22014396, NULL, '2025-11-06 17:41:16');
 
 -- --------------------------------------------------------
 
@@ -233,9 +232,10 @@ CREATE TABLE `maintenance_orders` (
 --
 
 INSERT INTO `maintenance_orders` (`id`, `asset_id`, `title`, `description`, `priority`, `status`, `requested_by`, `assigned_to`, `requested_date`, `due_date`, `resolved_date`, `created_at`, `updated_at`) VALUES
-(1, 4, 'Minor Fix', NULL, 'medium', 'in_progress', 2, 22014396, '2025-11-01', '2025-11-02', NULL, '2025-10-29 15:11:53', NULL),
-(2, 4, 'FIXING', NULL, 'medium', 'in_progress', 2, 22014396, '2025-11-03', '2025-11-03', NULL, '2025-10-29 17:41:16', '2025-11-01 06:54:34'),
-(3, 4, 'Fixing fixing', '', 'high', 'open', 22014396, 2, '2025-11-02', '2025-11-03', NULL, '2025-11-02 13:18:31', NULL);
+(3, 4, 'Fixing fixing', '', 'high', 'resolved', 22014396, 2, '2025-11-02', '2025-11-03', NULL, '2025-11-02 13:18:31', '2025-11-06 06:53:38'),
+(6, 2, 'Performance Issues', 'Random shutdowns', 'high', 'resolved', 22014000, NULL, '2025-11-07', '2025-11-08', '2025-11-07', '2025-11-07 03:32:03', '2025-11-07 09:22:06'),
+(7, 7, 'Screen Problem', 'Occasional glitches on screen', 'medium', 'in_progress', 22014396, NULL, '2025-11-07', '2025-11-11', NULL, '2025-11-07 09:23:41', '2025-11-07 11:18:16'),
+(8, 8, 'Cleanup', 'Some gunk in the port', 'high', 'open', 22014396, NULL, '2025-11-07', '2025-11-08', NULL, '2025-11-07 11:19:29', NULL);
 
 -- --------------------------------------------------------
 
@@ -323,7 +323,10 @@ INSERT INTO `products` (`id`, `product_name`, `product_id`, `brand_name`, `catag
 (1, 'AMD Ryzen 9 5900X Processor', 'P1689942626', 'Ryzen', 1, 'Processors', 'factory', '456AD5S', 48, 5, '3653', '4500', 1, '2025-10-22', '2023-07-21 12:30:26'),
 (2, 'Intel Core I5-10400 Processor', 'P1689942673', 'Intel', 1, 'Processors', 'factory', 'SDS55S', 0, 5, NULL, NULL, 1, '0000-00-00', '2023-07-21 12:31:13'),
 (3, 'Adata XPG Gammix D30 8GB 3200MHz DDR4 CL16 RAM Memory Module', 'P1689943120', 'XPG', 3, 'RAM (Memory)', 'factory', '2365SDSV', 0, 160, '1839', '2000', 1, '2023-07-19', '2023-07-21 12:38:40'),
-(4, 'Asus Prime', 'P1760933488', 'ASUS', 2, 'Motherboards', 'factory', '123456789', 0, 10, NULL, '', 1, '2025-10-20', '2025-10-20 04:11:28');
+(4, 'Asus Prime', 'P1760933488', 'ASUS', 2, 'Motherboards', 'factory', '123456789', 0, 10, NULL, '', 1, '2025-10-20', '2025-10-20 04:11:28'),
+(5, 'AMD Motherboard', 'P1762349728', 'AMD', 2, 'Motherboards', 'factory', '123DFR34', 0, 10, NULL, NULL, 22014396, '0000-00-00', '2025-11-05 13:35:28'),
+(7, 'Acer EK221Q Monitor', 'P1762451219', 'Acer', 4, 'Monitor', 'factory', '123DFR34', 30, 40, NULL, '', 22014396, '2025-11-07', '2025-11-06 17:46:59'),
+(8, 'Acer EK241Y P6 Monitor', 'P1762513764', 'Acer', 4, 'Monitor', 'factory', 'SA34D21F', 0, 20, NULL, NULL, 22014396, '0000-00-00', '2025-11-07 11:09:24');
 
 -- --------------------------------------------------------
 
@@ -529,6 +532,9 @@ CREATE TABLE `user` (
 
 INSERT INTO `user` (`id`, `username`, `password`, `user_role`, `update_by`, `last_update_at`, `added_date`, `photo`) VALUES
 (2, 'admin2', '0192023a7bbd73250516f069df18b500', 'admin', NULL, NULL, '2025-10-26 14:20:55', NULL),
+(22014000, 'normaluser', 'ab0f08ba5fdd9ea7c447d8d267d35012', 'user', NULL, NULL, '2025-11-05 17:35:06', NULL),
+(22014001, 'normaluser4', '738eb727f9d13e928bcc9c3f7dfcf534', 'user', NULL, NULL, '2025-11-07 09:56:45', NULL),
+(22014005, 'normaluser2', '4a1bccfd2b18d42a45f1194452072609', 'user', NULL, NULL, '2025-11-07 02:53:55', NULL),
 (22014396, 'lahmao', 'e99a18c428cb38d5f260853678922e03', 'admin', 1, 0, '2023-08-24 18:00:00', 'dist/img/lahmao.png');
 
 -- --------------------------------------------------------
@@ -553,9 +559,10 @@ CREATE TABLE `warranties` (
 
 INSERT INTO `warranties` (`id`, `asset_id`, `vendor_name`, `start_date`, `end_date`, `warranty_status`, `created_at`) VALUES
 (1, 4, 'Asus', '2025-10-26', '2025-10-29', 'expired', '2025-10-26 08:52:32'),
-(2, 2, 'Intel', '2025-10-27', '2025-10-30', 'expired', '2025-10-26 09:07:11'),
-(3, 1, 'AMD', '2025-10-28', '2025-10-31', 'expired', '2025-10-26 10:58:43'),
-(5, 4, 'Asus', '2025-11-01', '2025-11-02', 'expired', '2025-11-01 08:22:52');
+(6, 5, 'AMD', '2025-11-06', '2025-11-08', 'expired', '2025-11-05 13:59:27'),
+(19, 5, 'AMD', '2025-10-29', '2025-10-31', 'expired', '2025-11-07 06:00:27'),
+(23, 7, 'Acer', '2025-10-29', '2025-11-03', 'expired', '2025-11-07 07:08:38'),
+(26, 8, 'Acer', '2025-11-07', '2025-11-11', 'active', '2025-11-07 11:13:49');
 
 --
 -- Indexes for dumped tables
@@ -704,7 +711,7 @@ ALTER TABLE `bookings`
 -- AUTO_INCREMENT for table `catagory`
 --
 ALTER TABLE `catagory`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `expense`
@@ -740,7 +747,7 @@ ALTER TABLE `invoice_details`
 -- AUTO_INCREMENT for table `maintenance_orders`
 --
 ALTER TABLE `maintenance_orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `member`
@@ -758,7 +765,7 @@ ALTER TABLE `paymethode`
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
 
 --
 -- AUTO_INCREMENT for table `purchase_payment`
@@ -806,13 +813,13 @@ ALTER TABLE `suppliar`
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22014397;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22022223;
 
 --
 -- AUTO_INCREMENT for table `warranties`
 --
 ALTER TABLE `warranties`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 
 --
 -- Constraints for dumped tables

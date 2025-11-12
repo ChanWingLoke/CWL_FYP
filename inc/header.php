@@ -148,11 +148,49 @@ if ($photo !== '') {
       <div id="google_translate_element"></div>
 
       <!-- Notification icon -->
-      <li class="nav-item">
-        <a class="nav-link" href="index.php?page=notifications" title="Notifications">
+      <li class="nav-item dropdown" id="notifDropdown">
+        <a class="nav-link" data-toggle="dropdown" href="#" title="Notifications">
           <i class="material-symbols-outlined">notifications</i>
+          <span class="badge badge-danger navbar-badge" id="notifBadge" style="display:none">0</span>
         </a>
+        <div class="dropdown-menu dropdown-menu-right p-0" style="min-width:320px; max-height:60vh; overflow:auto;">
+          <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+            <strong>Notifications</strong>
+            <a href="#" id="notifMarkAll" class="small">Mark all as read</a>
+          </div>
+          <div id="notifList" class="list-group list-group-flush">
+            <div class="p-3 text-muted small">Loading…</div>
+          </div>
+          <div class="p-2 border-top text-center">
+            <a href="index.php?page=notifications" class="small">View all</a>
+          </div>
+        </div>
       </li>
+
+      <script>
+      (function(){
+        function escapeHtml(s){return String(s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
+        function render(data){
+          var badge=document.getElementById('notifBadge');
+          if(badge){ if(data.unread>0){badge.textContent=data.unread;badge.style.display='inline-block';} else {badge.style.display='none';} }
+          var list=document.getElementById('notifList');
+          if(!list)return;
+          list.innerHTML='';
+          if(!data.items||!data.items.length){ list.innerHTML='<div class="p-3 text-muted small">No notifications.</div>'; return; }
+          data.items.forEach(function(n){
+            var a=document.createElement('a');
+            a.href=n.link?n.link:'#';
+            a.className='list-group-item list-group-item-action d-flex justify-content-between align-items-start '+(n.is_read==0?'bg-light':'');
+            a.innerHTML='<div class="ms-2 me-auto"><div class="fw-bold">'+escapeHtml(n.title)+'</div>'+(n.body?'<div class="small text-muted">'+escapeHtml(n.body)+'</div>':'')+'<div class="small text-secondary">'+escapeHtml(n.created_at)+'</div></div>';
+            a.addEventListener('click',function(){ fetch('app/action/notifications_feed.php?read='+encodeURIComponent(n.id)); });
+            list.appendChild(a);
+          });
+        }
+        function load(){ fetch('app/action/notifications_feed.php').then(r=>r.json()).then(function(d){ if(d&&d.ok){ render(d);} }); }
+        document.addEventListener('click',function(e){ if(e.target&&e.target.id==='notifMarkAll'){ e.preventDefault(); fetch('app/action/notifications_feed.php?mark=all').then(load); } });
+        load(); setInterval(load,30000);
+      })();
+      </script>
 
       <!-- Mail icon -->
       <li class="nav-item">
@@ -171,9 +209,6 @@ if ($photo !== '') {
         <div class="dropdown-menu dropdown-menu-right p-0">
           <a href="index.php?page=profile" class="dropdown-item p-1">
             <i class="material-symbols-outlined">person</i> Profile
-          </a>
-          <a href="index.php?page=profile" class="dropdown-item p-1">
-            <i class="material-symbols-outlined">stacked_inbox</i> Inbox
           </a>
           <a href="app/action/logout.php" class="dropdown-item pic p-1">
             <i class="material-symbols-outlined">logout</i> Logout

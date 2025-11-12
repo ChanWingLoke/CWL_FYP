@@ -191,6 +191,94 @@ $completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE
           </div>
         </div>
 
+        <?php
+        // === Admin-only "Due Soon Bookings (1–3 days)" card =========================
+        $isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
+        $db = $pdo ?? ($obj->pdo ?? null);
+
+        if ($isAdmin && $db):
+          // Active statuses in your system
+          $activeStatuses = ['pending','approved','in_progress','active'];
+          $ph = implode(',', array_fill(0, count($activeStatuses), '?'));
+
+          // Count total due within 1–3 days
+          $sqlCount = "SELECT COUNT(*) FROM bookings b
+                      WHERE DATE(b.end_time) >  CURDATE()
+                        AND DATE(b.end_time) <= (CURDATE() + INTERVAL 3 DAY)
+                        AND b.status IN ($ph)";
+          $stc = $db->prepare($sqlCount);
+          $stc->execute($activeStatuses);
+          $dueSoonCount = (int)$stc->fetchColumn();
+
+          // Fetch a short list
+          $sqlList = "SELECT
+                        b.id AS booking_id,
+                        u.username,
+                        b.status,
+                        DATE(b.end_time) AS end_date,
+                        TIME(b.end_time) AS end_time,
+                        DATEDIFF(DATE(b.end_time), CURDATE()) AS days_left
+                      FROM bookings b
+                      JOIN user u ON u.id = b.user_id
+                      WHERE DATE(b.end_time) >  CURDATE()
+                        AND DATE(b.end_time) <= (CURDATE() + INTERVAL 3 DAY)
+                        AND b.status IN ($ph)
+                      ORDER BY b.end_time ASC
+                      LIMIT 10";
+          $st = $db->prepare($sqlList);
+          $st->execute($activeStatuses);
+          $dueSoonRows = $st->fetchAll(PDO::FETCH_ASSOC);
+        ?>
+        <div class="row">
+          <div class="col-md-12 col-xl-6">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">Due Soon Bookings (1–3 days)</h3>
+                <span class="badge badge-primary" style="font-size:0.9rem;"><?= (int)$dueSoonCount ?></span>
+              </div>
+              <div class="card-body p-0">
+                <?php if (!empty($dueSoonRows)): ?>
+                  <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                      <thead>
+                        <tr>
+                          <th style="width:80px;">#</th>
+                          <th>User</th>
+                          <th>Days Left</th>
+                          <th>Due</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <?php foreach ($dueSoonRows as $r): ?>
+                          <tr>
+                            <td><a href="index.php?page=bookings_all" title="Open Bookings">#<?= (int)$r['booking_id'] ?></a></td>
+                            <td><?= htmlspecialchars($r['username'] ?? '') ?></td>
+                            <td>
+                              <?php $dl=(int)$r['days_left']; ?>
+                              <span class="badge badge-<?= $dl===1?'danger':($dl===2?'warning':'info') ?>">
+                                <?= $dl ?> day<?= $dl===1?'':'s' ?>
+                              </span>
+                            </td>
+                            <td><?= htmlspecialchars($r['end_date'].' '.$r['end_time']) ?></td>
+                            <td><span class="badge badge-light text-dark"><?= htmlspecialchars($r['status']) ?></span></td>
+                          </tr>
+                        <?php endforeach; ?>
+                      </tbody>
+                    </table>
+                  </div>
+                <?php else: ?>
+                  <div class="p-3 text-muted">No bookings due in the next 3 days.</div>
+                <?php endif; ?>
+              </div>
+              <div class="card-footer text-right">
+                <a class="btn btn-sm btn-outline-primary" href="index.php?page=bookings_all">View all bookings</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <?php endif; ?>
+
       </div><!-- /.container-fluid -->
     </section>
     <!-- /.content -->

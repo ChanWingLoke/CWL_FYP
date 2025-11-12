@@ -187,11 +187,11 @@ $isAssetNewAddActive  = ($pg === 'new_asset_add')   ? ' active' : '';
                   <p>Buy list</p>
                 </a>
               </li>
-              <li class="nav-item">
-                <a href="index.php?page=buy_refund_list" class="nav-link <?php echo $actual_link=='buy_refund_list'?'active':'';?>">
+              <!-- <li class="nav-item"> -->
+                <!-- <a href="index.php?page=buy_refund_list" class="nav-link <?php echo $actual_link=='buy_refund_list'?'active':'';?>"> -->
                   <!-- <i class="fas fa-align-justify nav-icon"></i> -->
-                  <p>Refund buy list</p>
-                </a>
+                  <!-- <p>Refund buy list</p> -->
+                <!-- </a> -->
               </li>
             </ul>
           </li>
