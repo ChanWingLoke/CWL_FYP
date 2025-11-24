@@ -11,8 +11,8 @@
 
 		$product_source = $_POST['product_source'];
 		$quantity = $_POST['quantity'];
-		$alert_quantity = $_POST['alert_quantity'];
-		$selling_price = $_POST['selling_price'];
+		// $alert_quantity = $_POST['alert_quantity'];
+		// $selling_price = $_POST['selling_price'];
 		$date = date('Y-m-d');
 
 
@@ -24,13 +24,13 @@
 				'catagory_name'	 => $p_catagory_name,						
 				'product_source' => $product_source,				
 				'quantity' 		 => $quantity,			
-				'alert_quanttity'=> $alert_quantity,			
-				'sell_price' 	 => $selling_price,			
+				// 'alert_quanttity'=> $alert_quantity,			
+				// 'sell_price' 	 => $selling_price,			
 				'last_update_at' 	 => $date,			
 			);
 			$res = $obj->update('products','id',$id, $query);
 			if ($res) {
-				echo "Product edit successfull";
+				echo "Product edit successful";
 			}else{
 				echo "Failed to update product";
 			}

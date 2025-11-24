@@ -1,7 +1,5 @@
 <?php
 // Dashboard (reworked for IT Asset Management focus)
-// Assumes app/init.php (via inc/header.php) has already started session and created $pdo
-// We keep existing AdminLTE styling but simplify to the four core modules.
 
 // Helper: safe count fetch
 function quick_count(PDO $pdo, $sql) {

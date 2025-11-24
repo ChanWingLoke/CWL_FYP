@@ -5,16 +5,16 @@
     <div class="container-fluid">
       <div class="row">
         <div class="col-md-6">
-          <h1 class="m-0 text-dark"><!-- Dashboard v2 --></h1>
-          </div><!-- /.col -->
+          <h1 class="m-0 text-dark"></h1>
+          </div>
           <div class="col-md-6">
             <ol class="breadcrumb float-sm-right">
               <li class="breadcrumb-item"><a href="#">Home</a></li>
               <li class="breadcrumb-item active">Catagory</li>
             </ol>
-            </div><!-- /.col -->
-            </div><!-- /.row -->
-            </div><!-- /.container-fluid -->
+            </div>
+            </div>
+            </div>
           </div>
           <!-- /.content-header -->
           <!-- Main content -->
@@ -27,7 +27,7 @@
                    <div class="card">
 
                     <div class="card-header">
-                <h3 class="card-title">Edit catagory</h3>
+                <h3 class="card-title">Edit category</h3>
               </div>
                      <div class="card-body">
       <?php 
@@ -50,7 +50,7 @@
                           <div class="form-group">
                             <button type="submit" class="btn btn-primary btn-block mt-4 rounded-0">Update</button>
                           </div>
-                        </form>
+                </form>
 
               <?php 
             }else{

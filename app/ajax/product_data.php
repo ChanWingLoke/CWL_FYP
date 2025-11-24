@@ -64,8 +64,8 @@ foreach($empRecords as $row){
       "catagory_name"=>$row['catagory_name'],
       "product_source"=>$row['product_source'],
       "quantity"=>$row['quantity'],
-      "buy_price"=>$row['buy_price'],
-      "sell_price"=>$row['sell_price'],
+      // "buy_price"=>$row['buy_price'],
+      // "sell_price"=>$row['sell_price'],
       "action"=>'
           <div class="btn-group" role="group" aria-label="Basic example">
             <a href="index.php?page=product_edit&&edit_id='.$row['id'].'" class="btn btn-secondary btn-sm rounded-0" id="memberEdit_btn"><i class="fas fa-edit"></i></a>

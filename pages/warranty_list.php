@@ -44,7 +44,7 @@ catch (Throwable $e) {
   }
 }
 
-// Normalize expired status (optional)
+// Normalize expired status
 try {
   $db->exec("UPDATE warranties 
              SET warranty_status='expired' 
@@ -108,7 +108,6 @@ function badgeClass($status) {
   <section class="content">
     <div class="container-fluid">
 
-      <!-- Top: Server-side filter buttons + Add -->
       <div class="mb-3 d-flex justify-content-between flex-wrap">
         <div class="mb-2">
           <a href="index.php?page=warranty_list&filter=active"
@@ -124,7 +123,6 @@ function badgeClass($status) {
         </button>
       </div>
 
-      <!-- Client-side quick filter bar -->
       <div class="card mb-2">
         <div class="card-body py-2">
           <div class="form-row align-items-end">
@@ -157,7 +155,6 @@ function badgeClass($status) {
         </div>
       </div>
 
-      <!-- Table -->
       <div class="card">
         <div class="card-header d-flex align-items-center">
           <h3 class="card-title mb-0"><b><?= ucfirst($filter) ?> Warranties</b></h3>
@@ -226,7 +223,8 @@ function badgeClass($status) {
   </section>
 </div>
 
-
+<?php include 'warranty_modal_add.php'; ?>
+<?php include 'warranty_modal_edit.php'; ?>
 
 <style>
 /* Consistent filter button styling like Loans */
@@ -286,16 +284,24 @@ function badgeClass($status) {
 .select2-container--open{z-index:2050!important}
 </style>
 
-
-
 <script>
 window.addEventListener('DOMContentLoaded', function () {
   (function ($) {
 
+    // --- 1. Initialization and Input Enhancement ---
+    // Initialize Select2 for Asset filter and modal selects
     if ($.fn.select2) { $('.select2').select2({ width: '100%', minimumResultsForSearch: 0 }); }
 
-    var $fltDp = $('#fltEndFrom, #fltEndTo');
-    $fltDp.each(function(){
+    // Utility function to convert YYYY-MM-DD string to a Date object
+    function parseYMD(s){
+      var m = String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if(!m) return null;
+      // Note: Month is 0-indexed in JS Date
+      return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+    }
+
+    // Initialize Datepicker for filter fields
+    $('#fltEndFrom, #fltEndTo').each(function(){
       var $i = $(this);
       if ($i.data('datepicker')) return;
       $i.datepicker({
@@ -304,365 +310,119 @@ window.addEventListener('DOMContentLoaded', function () {
         orientation: 'bottom auto',
         container: 'body'
       });
-    // === FILTER BAR: Search / Clear handlers (strict by ID) ===
-    (function(){
-      var $form = $('#warrantyFilterForm');
-      $('#fltSearch').off('click.wflt').on('click.wflt', function(e){
-        // type=submit already submits; keep this as a safety to avoid preventDefault elsewhere
-        if (!$form.length) return;
-        // let native submit happen
-      });
-    // === Client-side filter for warranty table ===
-    function parseYMD(s){
-      var m = String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if(!m) return null;
-      return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
-    }
+    });
+
+    // --- 2. Client-Side Filtering Functions ---
+    
+    // Handler for the 'Apply' (Search) button
     $('#fltApply').off('click.wflt').on('click.wflt', function(e){
       e.preventDefault();
+      
+      // Capture filter criteria
       var assetTextSel = $('#fltAsset option:selected').text().trim();
+      var hasAssetSel  = $('#fltAsset').val() && $('#fltAsset').val() !== '';
       var vend = ($('#fltVendor').val()||'').toLowerCase().trim();
       var dFrom = parseYMD($('#fltEndFrom').val());
       var dTo   = parseYMD($('#fltEndTo').val());
+
+      // Iterate through every table row
       $('#warrantyTable tbody tr').each(function(){
         var $tr = $(this), $td = $tr.find('td');
-        if($td.length < 6) return;
+        if($td.length < 6) return; // Skip invalid rows
+        
+        // Extract row data from table columns
         var assetText  = $td.eq(1).text().trim();
         var vendorText = ($td.eq(2).text()||'').toLowerCase().trim();
         var endText    = $td.eq(4).text().trim();
         var endDate    = parseYMD(endText);
         var pass = true;
-        if($('#fltAsset').val()){
-          if(assetTextSel && assetText.indexOf(assetTextSel) === -1) pass = false;
-        }
+
+        // Apply all filtering rules (show only if all rules pass)
+        if(hasAssetSel && assetTextSel && assetText.indexOf(assetTextSel) === -1) pass = false;
         if(vend && vendorText.indexOf(vend) === -1) pass = false;
         if(dFrom && (!endDate || endDate < dFrom)) pass = false;
         if(dTo   && (!endDate || endDate > dTo))   pass = false;
+
+        // Toggle visibility
         $tr.toggle(pass);
       });
     });
+
+    // Handler for the 'Clear' button
     $('#fltClear').off('click.wflt').on('click.wflt', function(e){
       e.preventDefault();
-      $('#fltAsset').val('').trigger('change');
+      // Reset all filter inputs
+      if ($.fn.select2) { $('#fltAsset').val('').trigger('change'); } else { $('#fltAsset').val(''); }
       $('#fltVendor').val('');
       $('#fltEndFrom').val('');
       $('#fltEndTo').val('');
+      
+      // Show all rows
       $('#warrantyTable tbody tr').show();
     });
+    
+    // --- 3. Modal Functionality ---
 
-      $('#fltClear').off('click.wflt').on('click.wflt', function(e){
-        e.preventDefault();
-        if ($.fn.select2) { $('#fltAsset').val('').trigger('change'); }
-        else { $('#fltAsset').val(''); }
-        $('#fltVendor').val('');
-        $('#fltEndFrom').val('');
-        $('#fltEndTo').val('');
-        var curTab = ($form.find('input[name="tab"]').val() || 'active').toString();
-        window.location.href = 'index.php?page=warranty_list&tab=' + encodeURIComponent(curTab);
+    // ADD modal behavior: clear fields when closed
+    var $add = $('#modalWarrantyAdd');
+    if ($add.length) {
+      $add.on('hidden.bs.modal', function(){
+        $('#a_asset').val('').trigger('change');
+        $('#a_vendor').val('');
+        $('#a_start').val('');
+        $('#a_end').val('');
       });
-    })();
+    }
 
+    // EDIT modal behavior: populate fields when shown
+    $('#modalWarrantyEdit').on('show.bs.modal', function(e){
+      var $trigger = $(e.relatedTarget || null);
+      if (!$trigger || !$trigger.length) return;
+
+      var id    = $trigger.data('id')    || $trigger.closest('tr').data('id')    || '';
+      var asset = $trigger.data('asset') || $trigger.closest('tr').data('asset') || '';
+      var vend  = $trigger.data('vendor')|| $trigger.closest('tr').data('vendor')|| '';
+      var start = $trigger.data('start') || $trigger.closest('tr').data('start') || '';
+      var end   = $trigger.data('end')   || $trigger.closest('tr').data('end')   || '';
+
+      $('#modalWarrantyEdit .modal-title').text('Edit Warranty #' + id);
+
+      // Fill fields
+      $('#e_id').val(id);
+      $('#e_asset').val(asset).trigger('change'); 
+      $('#e_vendor').val(vend || '');
+      $('#e_start').val(start || '');
+      $('#e_end').val(end || '');
+
+      // Stash id on modal as backup for submit guard
+      $(this).data('row-id', id || '');
     });
-    // === FILTER BAR: Search / Clear handlers (server-side submission) ===
-    (function(){
-      var params = new URLSearchParams(window.location.search);
-      var curTab = params.get('tab') || 'active';
-      var baseUrl = 'index.php?page=warranty_list&tab='+encodeURIComponent(curTab);
-
-      // Find the warranty filter form (the one that contains hidden page=warranty_list)
-      var $form = $('form').filter(function(){
-        var $f = $(this);
-        var $page = $f.find('input[name="page"]');
-        return $page.length && $page.val() === 'warranty_list';
-      }).first();
-
-      // Submit on Search
-      $('#fltApply, .btn-filter').filter(function(){
-        return $(this).text().trim().toLowerCase() === 'search';
-      }).off('click.wflt').on('click.wflt', function(e){
+    
+    // Guard: prevent submitting Edit without an id
+    $(document).on('submit', '#modalWarrantyEdit form', function(e){
+      var id = $('#e_id').val() || $('#modalWarrantyEdit').data('row-id') || '';
+      if (!id) {
         e.preventDefault();
-        if ($form.length) { $form.trigger('submit'); }
-      });
-
-      // Clear inputs and reset to base tab URL
-      $('#fltClear, .btn-filter').filter(function(){
-        var t = $(this).text().trim().toLowerCase();
-        return t === 'clear' || t === 'reset';
-      }).off('click.wflt').on('click.wflt', function(e){
-        e.preventDefault();
-        $('#fltAsset').val('').trigger('change');
-        $('#fltVendor').val('');
-        $('#fltEndFrom').val('');
-        $('#fltEndTo').val('');
-        window.location.href = baseUrl;
-      });
-    })();
-
-
-    // === FILTER BAR: Client-side Search / Clear (no page reload) ===
-    (function(){
-      function parseYMD(s){
-        var m = String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-        if(!m) return null;
-        return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
+        alert('Edit failed: missing warranty ID. Please refresh and try again.');
+        return false;
       }
-
-      $('#fltApply').off('click.wflt').on('click.wflt', function(e){
-        e.preventDefault();
-        var assetTextSel = $('#fltAsset option:selected').text().trim();
-        var hasAssetSel  = $('#fltAsset').val() && $('#fltAsset').val() !== '';
-        var vend = ($('#fltVendor').val()||'').toLowerCase().trim();
-        var dFrom = parseYMD($('#fltEndFrom').val());
-        var dTo   = parseYMD($('#fltEndTo').val());
-
-        $('#warrantyTable tbody tr').each(function(){
-          var $tr = $(this), $td = $tr.find('td');
-          if($td.length < 6) return;
-          var assetText  = $td.eq(1).text().trim();
-          var vendorText = ($td.eq(2).text()||'').toLowerCase().trim();
-          var endText    = $td.eq(4).text().trim();
-          var endDate    = parseYMD(endText);
-          var pass = true;
-          if(hasAssetSel && assetTextSel && assetText.indexOf(assetTextSel) === -1) pass = false;
-          if(vend && vendorText.indexOf(vend) === -1) pass = false;
-          if(dFrom && (!endDate || endDate < dFrom)) pass = false;
-          if(dTo   && (!endDate || endDate > dTo))   pass = false;
-          $tr.toggle(pass);
-        });
+      return true;
+    });
+    
+    // Initialize datepickers for modal inputs when either modal opens
+    $('#modalWarrantyAdd, #modalWarrantyEdit').on('shown.bs.modal', function(){
+      var $scope = $(this);
+      $scope.find('.datepicker').each(function(){
+        var $input = $(this);
+        // Check if datepicker is already initialized
+        if (!$input.data('datepicker')) {
+          try {
+            $input.datepicker({ format: 'yyyy-mm-dd', autoclose: true, todayHighlight: true });
+          } catch(e) { /* fail quietly if plugin is missing */ }
+        }
       });
-
-      $('#fltClear').off('click.wflt').on('click.wflt', function(e){
-        e.preventDefault();
-        if ($.fn.select2) { $('#fltAsset').val('').trigger('change'); } else { $('#fltAsset').val(''); }
-        $('#fltVendor').val('');
-        $('#fltEndFrom').val('');
-        $('#fltEndTo').val('');
-        $('#warrantyTable tbody tr').show();
-      });
-    })();
+    });
 
   })(jQuery);
-});
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  var $ = window.jQuery;
-  if (!$) return;
-
-  // ADD modal behavior
-  var $add = $('#modalWarrantyAdd');
-  if ($add.length) {
-    $add.on('hidden.bs.modal', function(){
-      $('#a_asset').val('').trigger('change');
-      $('#a_vendor').val('');
-      $('#a_start').val('');
-      $('#a_end').val('');
-    });
-  }
-
-  // EDIT button -> open Edit modal with data
-    var id    = $btn.data('id') || $btn.closest('tr').data('id') || $btn.closest('[data-id]').data('id') || '';
-  var asset = $btn.data('asset') || $btn.closest('tr').data('asset') || '';
-  var vend  = $btn.data('vendor') || $btn.closest('tr').data('vendor') || '';
-  var start = $btn.data('start') || $btn.closest('tr').data('start') || '';
-  var end   = $btn.data('end')   || $btn.closest('tr').data('end')   || '';
-
-  // Stash id on the modal as extra safety
-  var     // Populate fields
-  $('#e_id').val(id);
-  $('#e_asset').val(asset).trigger('change');
-  $('#e_vendor').val(vend || '');
-  $('#e_start').val(start || '');
-  $('#e_end').val(end || '');
-
-  });
-
-// Guard: prevent submitting Edit without an id
-$(document).on('submit', '#modalWarrantyEdit form', function(e){
-  var id = $('#e_id').val() || $('#modalWarrantyEdit').data('row-id') || '';
-  if (!id) {
-    e.preventDefault();
-    alert('Edit failed: missing warranty ID. Please refresh the page and try again.');
-    return false;
-  }
-  return true;
-});
-    var asset = $(this).data('asset');
-    var vend  = $(this).data('vendor');
-    var start = $(this).data('start');
-    var end   = $(this).data('end');
-
-    $('#e_id').val(id);
-    $('#e_asset').val(asset).trigger('change');
-    $('#e_vendor').val(vend || '');
-    $('#e_start').val(start || '');
-    $('#e_end').val(end || '');
-
-    $('#modalWarrantyEdit').modal('show');
-  });
-});
-</script>
-
-<?php include 'warranty_modal_add.php'; ?>
-<?php include 'warranty_modal_edit.php'; ?>
-
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  var $ = window.jQuery;
-  if (!$) return;
-
-  // Initialize bootstrap-datepicker on open for both modals
-  $('#modalWarrantyAdd, #modalWarrantyEdit').on('shown.bs.modal', function(){
-    var $scope = $(this);
-    // Only init once per input
-    $scope.find('.datepicker').each(function(){
-      var $input = $(this);
-      if (!$input.data('datepicker')) {
-        try {
-          $input.datepicker({
-            format: 'yyyy-mm-dd',
-            autoclose: true,
-            todayHighlight: true
-          });
-        } catch(e) { /* plugin missing? fail quietly */ }
-      }
-    });
-  });
-});
-</script>
-
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  var $ = window.jQuery;
-  if (!$) return;
-  $('#modalWarrantyAdd, #modalWarrantyEdit').on('shown.bs.modal', function(){
-    var $scope = $(this);
-    $scope.find('.datepicker').each(function(){
-      var $input = $(this);
-      if (!$input.data('datepicker')) {
-        try {
-          $input.datepicker({ format:'yyyy-mm-dd', autoclose:true, todayHighlight:true });
-        } catch(e) {}
-      }
-    });
-  });
-});
-</script>
-
-
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  var $ = window.jQuery;
-  if (!$) return;
-
-  // When the Edit modal is about to be shown, pull data from the triggering element
-  $('#modalWarrantyEdit').on('show.bs.modal', function(e){
-    var $trigger = $(e.relatedTarget || null);
-    if (!$trigger || !$trigger.length) return;
-
-    var id    = $trigger.data('id')    || $trigger.closest('tr').data('id')    || '';
-    var asset = $trigger.data('asset') || $trigger.closest('tr').data('asset') || '';
-    var vend  = $trigger.data('vendor')|| $trigger.closest('tr').data('vendor')|| '';
-    var start = $trigger.data('start') || $trigger.closest('tr').data('start') || '';
-    var end   = $trigger.data('end')   || $trigger.closest('tr').data('end')   || '';
-
-    $('#modalWarrantyEdit .modal-title').text('Edit Warranty #' + id);
-
-    // Fill fields
-    $('#e_id').val(id);
-    $('#e_asset').val(asset).trigger('change');
-    $('#e_vendor').val(vend || '');
-    $('#e_start').val(start || '');
-    $('#e_end').val(end || '');
-
-    // Stash id on modal as backup for submit guard
-    $(this).data('row-id', id || '');
-  });
-
-  // Fallback: clicking any element that targets the edit modal should not navigate
-  $(document).on('click', '[data-target="#modalWarrantyEdit"]', function(ev){
-    ev.preventDefault();
-    // Let Bootstrap open the modal; 'show.bs.modal' will populate fields
-  });
-
-  // Guard: prevent submitting Edit without an id
-  $(document).on('submit', '#modalWarrantyEdit form', function(e){
-    var id = $('#e_id').val() || $('#modalWarrantyEdit').data('row-id') || '';
-    if (!id) {
-      e.preventDefault();
-      alert('Edit failed: missing warranty ID. Please refresh and try again.');
-      return false;
-    }
-    return true;
-  });
-
-  // Initialize datepickers when either modal opens
-  $('#modalWarrantyAdd, #modalWarrantyEdit').on('shown.bs.modal', function(){
-    var $scope = $(this);
-    $scope.find('.datepicker').each(function(){
-      var $input = $(this);
-      if (!$input.data('datepicker')) {
-        try {
-          $input.datepicker({ format: 'yyyy-mm-dd', autoclose: true, todayHighlight: true });
-        } catch(e) {}
-      }
-    });
-  });
-});
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function(){
-  var $ = window.jQuery;
-  if (!$) return;
-
-  // Direct, simple handlers for Search / Clear
-  $('#fltApply').off('click.fix').on('click.fix', function(e){
-    e.preventDefault();
-    // If you have a server-side filter form, submit it; else trigger client-side filter
-    // Here we just trigger the existing client-side routine if present
-    var asset = ($('#fltAsset').val() || '').toString().toLowerCase();
-    var vend  = ($('#fltVendor').val() || '').toString().toLowerCase();
-    var d1    = $('#fltEndFrom').val();
-    var d2    = $('#fltEndTo').val();
-    function parseYMD(s){
-      var m = String(s||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-      if(!m) return null;
-      return new Date(parseInt(m[1],10), parseInt(m[2],10)-1, parseInt(m[3],10));
-    }
-    var dt1 = parseYMD(d1), dt2 = parseYMD(d2);
-
-    $('#warrantyTable tbody tr').each(function(){
-      var $tr = $(this);
-      var a = ($tr.data('asset') || '').toString().toLowerCase();
-      var v = ($tr.data('vendor')|| '').toString().toLowerCase();
-      var e = ($tr.data('end')   || '').toString();
-
-      var ok = true;
-      if (asset && a !== asset) ok = false;
-      if (vend && v.indexOf(vend) === -1) ok = false;
-      if (ok && (dt1 || dt2)) {
-        var de = parseYMD(e);
-        if (!de) ok = false;
-        if (ok && dt1 && de < dt1) ok = false;
-        if (ok && dt2 && de > dt2) ok = false;
-      }
-      $tr.toggle(ok);
-    });
-  });
-
-  $('#fltClear').off('click.fix').on('click.fix', function(e){
-    e.preventDefault();
-    if ($.fn.select2) { $('#fltAsset').val('').trigger('change'); } else { $('#fltAsset').val(''); }
-    $('#fltVendor').val('');
-    $('#fltEndFrom').val('');
-    $('#fltEndTo').val('');
-    $('#warrantyTable tbody tr').show();
-  });
 });
 </script>

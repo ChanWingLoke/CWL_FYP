@@ -13,11 +13,12 @@
 
 		$product_source = $_POST['product_source'];
 		$sku = $_POST['sku'];
-		$alert_quantity = $_POST['alert_quantity'];
+		$quantity = $_POST['quantity'];
+		// $alert_quantity = $_POST['alert_quantity'];
 		$user_id = $_SESSION['user_id'];
 
 
-		if (!empty($product_name) && !empty($brand) && !empty($p_catagory) && !empty($product_source) && !empty($alert_quantity)) {
+		if (!empty($product_name) && !empty($brand) && !empty($p_catagory) && !empty($product_source)) {
 			// prodcut add query 
 			$query = array(
 				'product_name'	 => $product_name,				
@@ -26,8 +27,9 @@
 				'catagory_id'	 => $p_catagory,						
 				'catagory_name'	 => $p_catagory_name,						
 				'product_source' => $product_source,				
-				'sku' 			 => $sku,					
-				'alert_quanttity'=> $alert_quantity,		
+				'sku' 			 => $sku,
+				'quantity'		 => $quantity,					
+				// 'alert_quanttity'=> $alert_quantity,		
 				'added_by' 		 => $user_id,			
 			);
 			$res = $obj->create('products', $query);

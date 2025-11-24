@@ -163,8 +163,8 @@ $("#productTable").DataTable({
     { data: "catagory_name" },
     { data: "product_source" },
     { data: "quantity" },
-    { data: "buy_price" },
-    { data: "sell_price" },
+    // { data: "buy_price" },
+    // { data: "sell_price" },
     { data: "action" },
   ],
 });

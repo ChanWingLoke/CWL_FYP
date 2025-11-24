@@ -1,10 +1,4 @@
 <?php
-// ample/app/action/warranty_save.php (fixed)
-// - Admin-only guard
-// - Uses $pdo from init.php
-// - Verifies asset exists in `products`
-// - Uses correct column name `warranty_status`
-// - Supports insert and update
 
 require_once '../init.php';
 

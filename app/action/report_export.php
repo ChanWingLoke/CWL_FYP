@@ -45,8 +45,8 @@ switch ($module) {
                 p.catagory_name                  AS category,   -- note the spelling in table
                 p.sku                            AS sku,
                 p.quantity                       AS quantity,
-                p.buy_price                      AS buy_price,
-                p.sell_price                     AS sell_price,
+                -- p.buy_price                      AS buy_price,
+                -- p.sell_price                     AS sell_price,
                 p.last_update_at                 AS last_update,
                 p.added_time                     AS added_time
             FROM products p";
@@ -57,7 +57,7 @@ switch ($module) {
     // Column headers for CSV/PDF in the same order as SELECT
     $columns = [
         'Asset ID','Product Name','Product Code','Brand','Category',
-        'SKU','Quantity','Buy Price','Sell Price','Last Update','Added Time'
+        'SKU','Quantity','Last Update','Added Time'
     ];
 
     // run & fetch
