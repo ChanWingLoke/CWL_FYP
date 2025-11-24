@@ -23,6 +23,7 @@ $expired_warranties   = quick_count($pdo, "SELECT COUNT(*) FROM `warranties` WHE
 $total_bookings       = quick_count($pdo, "SELECT COUNT(*) FROM `bookings`");
 $active_bookings      = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE `status` IN ('pending','approved')");
 $completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE `status` IN ('returned','rejected')");
+$isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
 
 ?>
   <div class="content-wrapper">
@@ -87,7 +88,11 @@ $completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE
               <div class="icon">
                 <i class="fas fa-shield-alt"></i>
               </div>
-              <a href="index.php?page=warranty_list" class="small-box-footer">Manage Warranties <i class="fas fa-arrow-circle-right"></i></a>
+              <?php if ($isAdmin): ?>
+                <a href="index.php?page=warranty_list" class="small-box-footer">
+                  Manage Warranties <i class="fas fa-arrow-circle-right"></i>
+                </a>
+              <?php endif; ?>
             </div>
           </div>
 
@@ -117,7 +122,7 @@ $completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE
               <div class="card-body p-0">
                 <ul class="list-group list-group-flush">
                   <li class="list-group-item d-flex justify-content-between align-items-center">
-                    Open / In Progress / Waiting Parts
+                    Open / In Progress
                     <span class="badge badge-warning badge-pill"><?php echo $total_maint_open; ?></span>
                   </li>
                   <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -155,7 +160,9 @@ $completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE
                 </ul>
               </div>
               <div class="card-footer text-right">
-                <a class="btn btn-sm btn-outline-success" href="index.php?page=warranty_list">Manage</a>
+                <?php if ($isAdmin): ?>
+                  <a class="btn btn-sm btn-outline-success" href="index.php?page=warranty_list">Manage</a>
+                <?php endif; ?>
               </div>
             </div>
           </div>
@@ -192,16 +199,15 @@ $completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE
         </div>
 
         <?php
-        // === Admin-only "Due Soon Bookings (1–3 days)" card =========================
-        $isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
+        // === Admin-only "Due Soon + Expired Bookings + Warranties Expiring Soon" ===
         $db = $pdo ?? ($obj->pdo ?? null);
 
         if ($isAdmin && $db):
-          // Active statuses in your system
+          // Active booking statuses
           $activeStatuses = ['pending','approved','in_progress','active'];
           $ph = implode(',', array_fill(0, count($activeStatuses), '?'));
 
-          // Count total due within 1–3 days
+          // -------- Due Soon Bookings (1–3 days) --------
           $sqlCount = "SELECT COUNT(*) FROM bookings b
                       WHERE DATE(b.end_time) >  CURDATE()
                         AND DATE(b.end_time) <= (CURDATE() + INTERVAL 3 DAY)
@@ -210,7 +216,6 @@ $completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE
           $stc->execute($activeStatuses);
           $dueSoonCount = (int)$stc->fetchColumn();
 
-          // Fetch a short list
           $sqlList = "SELECT
                         b.id AS booking_id,
                         u.username,
@@ -228,9 +233,53 @@ $completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE
           $st = $db->prepare($sqlList);
           $st->execute($activeStatuses);
           $dueSoonRows = $st->fetchAll(PDO::FETCH_ASSOC);
+
+          // -------- Expired Bookings --------
+          $sqlOverCount = "SELECT COUNT(*) FROM bookings b
+                          WHERE DATE(b.end_time) < CURDATE()
+                            AND b.status IN ($ph)";
+          $sto = $db->prepare($sqlOverCount);
+          $sto->execute($activeStatuses);
+          $overdueCount = (int)$sto->fetchColumn();
+
+          $sqlOverList = "SELECT
+                            b.id AS booking_id,
+                            u.username,
+                            b.status,
+                            DATE(b.end_time) AS end_date,
+                            TIME(b.end_time) AS end_time,
+                            DATEDIFF(CURDATE(), DATE(b.end_time)) AS days_overdue
+                          FROM bookings b
+                          JOIN user u ON u.id = b.user_id
+                          WHERE DATE(b.end_time) < CURDATE()
+                            AND b.status IN ($ph)
+                          ORDER BY b.end_time ASC
+                          LIMIT 10";
+          $stol = $db->prepare($sqlOverList);
+          $stol->execute($activeStatuses);
+          $overdueRows = $stol->fetchAll(PDO::FETCH_ASSOC);
+
+          // -------- Warranties Expiring Soon (≤30 days) --------
+          // Only active warranties ending within the next 30 days
+          $sqlWCount = "SELECT COUNT(*) FROM warranties w
+                        WHERE DATE(w.end_date) BETWEEN CURDATE() AND (CURDATE() + INTERVAL 30 DAY)
+                          AND w.warranty_status = 'active'";
+          $wcount = (int)$db->query($sqlWCount)->fetchColumn();
+
+          $sqlWList = "SELECT
+                        w.id AS warranty_id,
+                        DATE(w.end_date) AS end_date,
+                        DATEDIFF(DATE(w.end_date), CURDATE()) AS days_left
+                      FROM warranties w
+                      WHERE DATE(w.end_date) BETWEEN CURDATE() AND (CURDATE() + INTERVAL 30 DAY)
+                        AND w.warranty_status = 'active'
+                      ORDER BY w.end_date ASC
+                      LIMIT 10";
+          $wrows = $db->query($sqlWList)->fetchAll(PDO::FETCH_ASSOC);
         ?>
         <div class="row">
-          <div class="col-md-12 col-xl-6">
+          <!-- Due Soon Bookings -->
+          <div class="col-md-12 col-xl-4">
             <div class="card">
               <div class="card-header d-flex justify-content-between align-items-center">
                 <h3 class="card-title mb-0">Due Soon Bookings (1–3 days)</h3>
@@ -252,7 +301,7 @@ $completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE
                       <tbody>
                         <?php foreach ($dueSoonRows as $r): ?>
                           <tr>
-                            <td><a href="index.php?page=bookings_all" title="Open Bookings">#<?= (int)$r['booking_id'] ?></a></td>
+                            <td><a href="index.php?page=bookings_all">#<?= (int)$r['booking_id'] ?></a></td>
                             <td><?= htmlspecialchars($r['username'] ?? '') ?></td>
                             <td>
                               <?php $dl=(int)$r['days_left']; ?>
@@ -273,6 +322,98 @@ $completed_bookings   = quick_count($pdo, "SELECT COUNT(*) FROM `bookings` WHERE
               </div>
               <div class="card-footer text-right">
                 <a class="btn btn-sm btn-outline-primary" href="index.php?page=bookings_all">View all bookings</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expired Bookings -->
+          <div class="col-md-12 col-xl-4">
+            <div class="card border-danger">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">Expired Bookings</h3>
+                <span class="badge badge-danger" style="font-size:0.9rem;"><?= (int)$overdueCount ?></span>
+              </div>
+              <div class="card-body p-0">
+                <?php if (!empty($overdueRows)): ?>
+                  <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                      <thead>
+                        <tr>
+                          <th style="width:80px;">#</th>
+                          <th>User</th>
+                          <th>Days Overdue</th>
+                          <th>Was Due</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <?php foreach ($overdueRows as $r): ?>
+                          <tr>
+                            <td><a href="index.php?page=bookings_all">#<?= (int)$r['booking_id'] ?></a></td>
+                            <td><?= htmlspecialchars($r['username'] ?? '') ?></td>
+                            <td>
+                              <?php $od=(int)$r['days_overdue']; ?>
+                              <span class="badge badge-<?= $od>=7?'dark':($od>=3?'danger':'warning') ?>">
+                                <?= $od ?> day<?= $od===1?'':'s' ?>
+                              </span>
+                            </td>
+                            <td><?= htmlspecialchars($r['end_date'].' '.$r['end_time']) ?></td>
+                            <td><span class="badge badge-light text-dark"><?= htmlspecialchars($r['status']) ?></span></td>
+                          </tr>
+                        <?php endforeach; ?>
+                      </tbody>
+                    </table>
+                  </div>
+                <?php else: ?>
+                  <div class="p-3 text-muted">No expired bookings 🎉</div>
+                <?php endif; ?>
+              </div>
+              <div class="card-footer text-right">
+                <a class="btn btn-sm btn-outline-danger" href="index.php?page=bookings_all">Review bookings</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Warranties Expiring Soon (≤30 days) -->
+          <div class="col-md-12 col-xl-4">
+            <div class="card border-success">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">Warranties Expiring Soon (≤30 days)</h3>
+                <span class="badge badge-success" style="font-size:0.9rem;"><?= (int)$wcount ?></span>
+              </div>
+              <div class="card-body p-0">
+                <?php if (!empty($wrows)): ?>
+                  <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                      <thead>
+                        <tr>
+                          <th style="width:80px;">#</th>
+                          <th>Days Left</th>
+                          <th>Ends On</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <?php foreach ($wrows as $wr): ?>
+                          <tr>
+                            <td><a href="index.php?page=warranty_list">#<?= (int)$wr['warranty_id'] ?></a></td>
+                            <td>
+                              <?php $wdl=(int)$wr['days_left']; ?>
+                              <span class="badge badge-<?= $wdl<=3?'danger':($wdl<=7?'warning':'success') ?>">
+                                <?= $wdl ?> day<?= $wdl===1?'':'s' ?>
+                              </span>
+                            </td>
+                            <td><?= htmlspecialchars($wr['end_date']) ?></td>
+                          </tr>
+                        <?php endforeach; ?>
+                      </tbody>
+                    </table>
+                  </div>
+                <?php else: ?>
+                  <div class="p-3 text-muted">No warranties expiring soon.</div>
+                <?php endif; ?>
+              </div>
+              <div class="card-footer text-right">
+                <a class="btn btn-sm btn-outline-success" href="index.php?page=warranty_list">Manage warranties</a>
               </div>
             </div>
           </div>

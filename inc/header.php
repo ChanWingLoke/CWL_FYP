@@ -120,7 +120,30 @@ if ($photo !== '') {
 
     /* Kill old watermark-based loaders if they still exist anywhere */
     #page, #loading { display: none !important; background: none !important; }
+
+    /* --- Sidebar scroll fix (reach the last items like Settings) --- */
+    .layout-fixed .main-sidebar .sidebar{
+      /* available height = viewport - fixed top navbar (~57px on desktop) */
+      height: calc(100vh - 57px);
+      overflow-y: auto;
+      overscroll-behavior: contain;   /* keep scroll from bubbling the page */
+      padding-bottom: 80px;           /* breathing room so last item is clickable */
+    }
+
+    /* If you have very long submenus, a little extra space helps */
+    .main-sidebar .nav-sidebar{
+      padding-bottom: 72px;
+    }
+
+    /* Slightly different topbar height on small screens */
+    @media (max-width: 991.98px){
+      .layout-fixed .main-sidebar .sidebar{
+        height: calc(100vh - 56px);
+      }
+    }
+
   </style>
+
 </head>
 <body class="hold-transition sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed">
 
@@ -193,11 +216,11 @@ if ($photo !== '') {
       </script>
 
       <!-- Mail icon -->
-      <li class="nav-item">
+      <!-- <li class="nav-item">
         <a class="nav-link" href="index.php?page=inbox" title="Mail">
           <i class="material-symbols-outlined">mail</i>
         </a>
-      </li>
+      </li> -->
 
       <!-- Profile Dropdown (dynamic user) -->
       <li class="nav-item dropdown">

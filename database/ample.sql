@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 11, 2025 at 02:32 PM
+-- Generation Time: Nov 12, 2025 at 09:11 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -56,7 +56,8 @@ INSERT INTO `bookings` (`id`, `asset_id`, `user_id`, `start_time`, `end_time`, `
 (22, 4, 22014396, '2025-11-06 00:00:00', '2025-11-07 23:59:59', 'book for......', 'returned', '2025-11-05 06:44:14', '2025-11-05 07:32:10'),
 (26, 4, 22014396, '2025-11-07 00:00:00', '2025-11-10 23:59:59', '', 'rejected', '2025-11-07 07:16:46', '2025-11-11 13:25:37'),
 (29, 7, 22014396, '2025-11-07 00:00:00', '2025-11-09 23:59:59', '', 'returned', '2025-11-07 09:47:29', '2025-11-07 09:49:23'),
-(30, 8, 22014396, '2025-11-07 00:00:00', '2025-11-10 23:59:59', '', 'returned', '2025-11-07 11:52:05', '2025-11-11 13:25:40');
+(30, 8, 22014396, '2025-11-07 00:00:00', '2025-11-10 23:59:59', '', 'returned', '2025-11-07 11:52:05', '2025-11-11 13:25:40'),
+(31, 7, 22014396, '2025-11-11 00:00:00', '2025-11-13 23:59:59', '', 'approved', '2025-11-11 14:20:30', '2025-11-11 14:20:35');
 
 -- --------------------------------------------------------
 
@@ -232,10 +233,7 @@ CREATE TABLE `maintenance_orders` (
 --
 
 INSERT INTO `maintenance_orders` (`id`, `asset_id`, `title`, `description`, `priority`, `status`, `requested_by`, `assigned_to`, `requested_date`, `due_date`, `resolved_date`, `created_at`, `updated_at`) VALUES
-(3, 4, 'Fixing fixing', '', 'high', 'resolved', 22014396, 2, '2025-11-02', '2025-11-03', NULL, '2025-11-02 13:18:31', '2025-11-06 06:53:38'),
-(6, 2, 'Performance Issues', 'Random shutdowns', 'high', 'resolved', 22014000, NULL, '2025-11-07', '2025-11-08', '2025-11-07', '2025-11-07 03:32:03', '2025-11-07 09:22:06'),
-(7, 7, 'Screen Problem', 'Occasional glitches on screen', 'medium', 'in_progress', 22014396, NULL, '2025-11-07', '2025-11-11', NULL, '2025-11-07 09:23:41', '2025-11-07 11:18:16'),
-(8, 8, 'Cleanup', 'Some gunk in the port', 'high', 'open', 22014396, NULL, '2025-11-07', '2025-11-08', NULL, '2025-11-07 11:19:29', NULL);
+(9, 7, 'Screen Fix', 'Glitching colors appearing', 'medium', 'closed', 22014396, NULL, '2025-11-12', '2025-11-15', '2025-11-12', '2025-11-12 07:01:55', '2025-11-12 07:33:27');
 
 -- --------------------------------------------------------
 
@@ -266,6 +264,39 @@ CREATE TABLE `member` (
 
 INSERT INTO `member` (`id`, `member_id`, `name`, `company`, `address`, `con_num`, `email`, `total_buy`, `total_paid`, `total_due`, `reg_date`, `update_by`, `update_at`, `create_at`) VALUES
 (1, 'C1689940620', 'Nilesh Pandit', 'Nilesh Pandit Pvt Ltd', '2nd floor, Nikhil Pride Building, Lokmanya Bal Gangadhar Tilak Rd, near Kaka Halwai, Pune, Maharasht', '9090909090', 'nilesh@gmail.com', 19000.00, 19000.00, 0.00, '2023-07-21', 1, NULL, '2023-07-21 11:57:00');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `title` varchar(150) NOT NULL,
+  `body` text DEFAULT NULL,
+  `link` varchar(255) DEFAULT NULL,
+  `is_read` tinyint(1) NOT NULL DEFAULT 0,
+  `type` varchar(50) DEFAULT NULL,
+  `ref_id` int(11) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `user_id`, `title`, `body`, `link`, `is_read`, `type`, `ref_id`, `created_at`) VALUES
+(1, 22014396, 'Booking due in 1 day (#31)', 'Your booking is due on 2025-11-13 23:59:59. Please return or extend if needed.', 'index.php?page=bookings_all', 1, 'booking_due_1d', 31, '2025-11-12 01:22:36'),
+(2, 22014396, 'Warranty expired (ID #1)', 'Expired on 2025-10-29.', 'index.php?page=warranty_list', 1, 'warranty_expired', 1, '2025-11-12 14:57:20'),
+(3, 22014396, 'Warranty expired (ID #6)', 'Expired on 2025-11-08.', 'index.php?page=warranty_list', 1, 'warranty_expired', 6, '2025-11-12 14:57:20'),
+(4, 22014396, 'Warranty expired (ID #19)', 'Expired on 2025-10-31.', 'index.php?page=warranty_list', 1, 'warranty_expired', 19, '2025-11-12 14:57:20'),
+(5, 22014396, 'Warranty expired (ID #23)', 'Expired on 2025-11-03.', 'index.php?page=warranty_list', 1, 'warranty_expired', 23, '2025-11-12 14:57:20'),
+(6, 22014396, 'Warranty expired (ID #26)', 'Expired on 2025-11-11.', 'index.php?page=warranty_list', 1, 'warranty_expired', 26, '2025-11-12 14:57:20'),
+(7, 22014396, 'Asset under maintenance (#9)', 'Screen Fix — Asset #7 is currently \'open\'.', 'index.php?page=maintenance_list', 1, 'maint_asset_open', 9, '2025-11-12 15:13:32'),
+(8, 22014000, 'Asset under maintenance (#9)', 'Screen Fix — Asset #7 is currently \'open\'.', 'index.php?page=maintenance_list', 1, 'maint_asset_open', 9, '2025-11-12 15:14:56'),
+(9, 22014396, 'Maintenance closed (#9)', 'Screen Fix — Asset #7 was closed on 2025-11-12.', 'index.php?page=maintenance_list', 1, 'maint_asset_closed', 9, '2025-11-12 15:33:30');
 
 -- --------------------------------------------------------
 
@@ -562,7 +593,8 @@ INSERT INTO `warranties` (`id`, `asset_id`, `vendor_name`, `start_date`, `end_da
 (6, 5, 'AMD', '2025-11-06', '2025-11-08', 'expired', '2025-11-05 13:59:27'),
 (19, 5, 'AMD', '2025-10-29', '2025-10-31', 'expired', '2025-11-07 06:00:27'),
 (23, 7, 'Acer', '2025-10-29', '2025-11-03', 'expired', '2025-11-07 07:08:38'),
-(26, 8, 'Acer', '2025-11-07', '2025-11-11', 'active', '2025-11-07 11:13:49');
+(26, 8, 'Acer', '2025-11-07', '2025-11-11', 'expired', '2025-11-07 11:13:49'),
+(27, 7, 'Acer', '2025-11-12', '2025-11-30', 'active', '2025-11-12 07:50:41');
 
 --
 -- Indexes for dumped tables
@@ -629,6 +661,14 @@ ALTER TABLE `maintenance_orders`
 ALTER TABLE `member`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `member_id` (`member_id`);
+
+--
+-- Indexes for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uniq_user_type_ref` (`user_id`,`type`,`ref_id`),
+  ADD KEY `idx_notifications_user` (`user_id`,`is_read`,`created_at`);
 
 --
 -- Indexes for table `paymethode`
@@ -747,13 +787,19 @@ ALTER TABLE `invoice_details`
 -- AUTO_INCREMENT for table `maintenance_orders`
 --
 ALTER TABLE `maintenance_orders`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `member`
 --
 ALTER TABLE `member`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT for table `notifications`
+--
+ALTER TABLE `notifications`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `paymethode`
@@ -819,7 +865,7 @@ ALTER TABLE `user`
 -- AUTO_INCREMENT for table `warranties`
 --
 ALTER TABLE `warranties`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- Constraints for dumped tables
@@ -832,6 +878,12 @@ ALTER TABLE `maintenance_orders`
   ADD CONSTRAINT `fk_maint_asset` FOREIGN KEY (`asset_id`) REFERENCES `products` (`id`) ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_maint_assigned_to` FOREIGN KEY (`assigned_to`) REFERENCES `user` (`id`) ON DELETE SET NULL ON UPDATE CASCADE,
   ADD CONSTRAINT `fk_maint_requested_by` FOREIGN KEY (`requested_by`) REFERENCES `user` (`id`) ON UPDATE CASCADE;
+
+--
+-- Constraints for table `notifications`
+--
+ALTER TABLE `notifications`
+  ADD CONSTRAINT `fk_notifications_user` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `warranties`

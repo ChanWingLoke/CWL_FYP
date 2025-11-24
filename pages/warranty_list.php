@@ -184,7 +184,10 @@ function badgeClass($status) {
                 ?>
                 <tr>
                   <td><?= $i+1 ?></td>
-                  <td><?= htmlspecialchars($r['asset_name']) ?></td>
+                  <td>
+                    <?= htmlspecialchars($r['asset_name']) ?>
+                    <span class="badge badge-light text-muted ml-1" title="Warranty ID">#<?= (int)$r['id'] ?></span>
+                  </td>
                   <td><?= htmlspecialchars($r['vendor_name'] ?? '-') ?></td>
                   <td><?= htmlspecialchars(date('Y-m-d', strtotime($r['start_date']))) ?></td>
                   <td><?= htmlspecialchars(date('Y-m-d', strtotime($r['end_date']))) ?></td>
@@ -567,6 +570,8 @@ document.addEventListener('DOMContentLoaded', function(){
     var vend  = $trigger.data('vendor')|| $trigger.closest('tr').data('vendor')|| '';
     var start = $trigger.data('start') || $trigger.closest('tr').data('start') || '';
     var end   = $trigger.data('end')   || $trigger.closest('tr').data('end')   || '';
+
+    $('#modalWarrantyEdit .modal-title').text('Edit Warranty #' + id);
 
     // Fill fields
     $('#e_id').val(id);

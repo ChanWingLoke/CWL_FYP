@@ -75,7 +75,7 @@ if (isset($db) && $db instanceof PDO) {
                   <th>Username</th>
                   <th>Role</th>
                   <th>Added</th>
-                  <th>Updated</th>
+                  <!-- <th>Updated</th> -->
                   <th>Photo</th>
                   <?php if ($isAdmin): ?><th class="text-right">Actions</th><?php endif; ?>
                 </tr>
@@ -97,7 +97,7 @@ if (isset($db) && $db instanceof PDO) {
                       <?php endif; ?>
                     </td>
                     <td><?= h($r['added_date']) ?></td>
-                    <td><?= h($r['last_update_at'] ?? '') ?></td>
+                    <!-- <td><?= h($r['last_update_at'] ?? '') ?></td> -->
                     <td>
                       <?php if (!empty($r['photo'])): ?>
                         <img src="<?= h($r['photo']) ?>" alt="photo" style="height:36px;width:36px;object-fit:cover;border-radius:50%;">

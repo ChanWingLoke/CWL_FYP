@@ -34,6 +34,34 @@ if (!$id || !isset($allowed[$action])) {
 
 $newStatus = $allowed[$action];
 
+// If approving, ensure the asset isn't under maintenance (open, in_progress, resolved)
+if ($newStatus === 'approved') {
+  // Look up the booking's asset_id
+  $bst = $db->prepare("SELECT asset_id FROM bookings WHERE id = :id LIMIT 1");
+  $bst->execute([':id' => $id]);
+  $assetId = (int)$bst->fetchColumn();
+
+  if ($assetId) {
+    $blockStatuses = ['open','in_progress','resolved'];
+    $ph = implode(',', array_fill(0, count($blockStatuses), '?'));
+
+    $msql = "SELECT 1 FROM maintenance_orders
+             WHERE asset_id = ?
+               AND status IN ($ph)
+             LIMIT 1";
+    $mstmt = $db->prepare($msql);
+    $mstmt->execute(array_merge([$assetId], $blockStatuses));
+
+    if ($mstmt->fetchColumn()) {
+      $back = $_POST['back'] ?? 'bookings_requests';
+      header('Location: ../../index.php?page=' . urlencode($back) .
+             '&msg=' . urlencode('Cannot approve: asset is under maintenance (open/in_progress/resolved).') .
+             '&type=danger');
+      exit;
+    }
+  }
+}
+
 try {
   $stmt = $db->prepare("UPDATE bookings SET status = :status, updated_at = NOW() WHERE id = :id");
   $stmt->execute([':status' => $newStatus, ':id' => $id]);

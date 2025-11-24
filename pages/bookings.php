@@ -67,6 +67,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['do_booking'])) {
       throw new Exception('End date must be after start date.');
     }
 
+    // Block booking if asset has active maintenance (open, in_progress, resolved)
+    $blockStatuses = ['open','in_progress','resolved']; // per your rule
+    $ph = implode(',', array_fill(0, count($blockStatuses), '?'));
+
+    $msql = "SELECT 1
+            FROM maintenance_orders
+            WHERE asset_id = ?
+              AND status IN ($ph)
+            LIMIT 1";
+    $mstmt = $db->prepare($msql);
+    $mstmt->execute(array_merge([$asset_id], $blockStatuses));
+    if ($mstmt->fetchColumn()) {
+      throw new Exception('This asset is currently under maintenance and cannot be booked until the maintenance is closed.');
+    }
+
     // Conflict check stays as a backstop
     $sql = "SELECT COUNT(*) FROM bookings
             WHERE asset_id = :asset_id
