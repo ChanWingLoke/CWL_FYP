@@ -103,11 +103,13 @@ if (!$db_error && $_SERVER['REQUEST_METHOD'] === 'POST') {
     // Dynamic Update Query
     if ($password !== '') {
       // Update ALL fields (Password changed)
-      $sql = "UPDATE `user` SET `username`=:u, `password`=MD5(:p), `user_role`=:r, `photo`=:ph WHERE `id`=:id";
+      $sql = "UPDATE `user` SET `username`=:u, `password`=MD5(:p), `user_role`=:r, `photo`=:ph, `last_update_at`=NOW() 
+              WHERE `id`=:id";
       $params = [':u'=>$username, ':p'=>$password, ':r'=>$role, ':ph'=>$photo ?: null, ':id'=>$uid];
     } else {
       // Update fields EXCEPT password
-      $sql = "UPDATE `user` SET `username`=:u, `user_role`=:r, `photo`=:ph WHERE `id`=:id";
+      $sql = "UPDATE `user` SET `username`=:u, `user_role`=:r, `photo`=:ph, `last_update_at`=NOW() 
+              WHERE `id`=:id";
       $params = [':u'=>$username, ':r'=>$role, ':ph'=>$photo ?: null, ':id'=>$uid];
     }
     

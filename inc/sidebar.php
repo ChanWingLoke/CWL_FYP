@@ -3,7 +3,7 @@
 $pg = isset($_GET['page']) ? trim($_GET['page']) : '';
 ?>
 
-<aside class="main-sidebar sidebar ">
+<aside class="main-sidebar sidebar">
 
   <a href="index.php" class="brand-link">
     <img src="dist/img/log.jpg" alt="logo" class="brand-image">
