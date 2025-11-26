@@ -1,13 +1,9 @@
 <?php
-/**
- * Maintenance List with Filter Tabs (fixed) + Right-aligned New Request button
- * - Assumes inc/header.php already required app/init.php
- * - Supports ?status=all|open|in_progress|waiting_parts|resolved|closed
- */
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 
 $isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
 
+// --- 1. Database Connection and Setup ---
 // Resolve PDO
 $db = null;
 if (isset($pdo) && $pdo)        { $db = $pdo; }
@@ -17,28 +13,31 @@ if (!$db) {
   return;
 }
 
-// Detect asset table
+// Detect asset table (supports 'products' or 'product')
 $productTable = 'products';
 try { $db->query("SELECT 1 FROM `products` LIMIT 1"); }
 catch (Throwable $e) { try { $db->query("SELECT 1 FROM `product` LIMIT 1"); $productTable='product'; } catch (Throwable $e2) {} }
 
-// Allowed statuses
+// --- 2. Filtering and Status Counting ---
+// Allowed statuses for URL filter
 $allowed = ['all','open','in_progress','resolved','closed'];
 $status  = strtolower($_GET['status'] ?? 'all');
 if (!in_array($status, $allowed, true)) { $status = 'all'; }
 
-// Counts for tabs
+// Counts for filter tabs
 $counts = array_fill_keys(['all','open','in_progress','resolved','closed'], 0);
 try {
+  // Query to get count of requests for each status
   $crows = $db->query("SELECT status, COUNT(*) AS c FROM maintenance_orders GROUP BY status")->fetchAll(PDO::FETCH_KEY_PAIR);
   $total = 0;
   foreach ($crows as $st => $c) { $total += (int)$c; if (isset($counts[$st])) $counts[$st] = (int)$c; }
-  $counts['all'] = $total;
-} catch (Throwable $e) { /* ignore */ }
+  $counts['all'] = $total; // Set the total count
+} catch (Throwable $e) { /* ignore if maintenance_orders table doesn't exist yet */ }
 
-// Fetch rows (with optional filter)
+// --- 3. Fetch Maintenance Requests ---
 $where = "";
 $params = [];
+// Apply status filter if not 'all'
 if ($status !== 'all') {
   $where = "WHERE mo.status = :status";
   $params[':status'] = $status;
@@ -70,6 +69,7 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+// --- 4. Helper Functions for Badges ---
 function badgePriority($p) {
   $label = ucfirst($p);
   $map = [
@@ -95,6 +95,7 @@ function badgeStatus($s) {
   return '<span class="badge badge-pill badge-' . $m['cls'] . '" title="' . htmlspecialchars($m['title']) . '">' . $icon . htmlspecialchars($label) . '</span>';
 }
 ?>
+
 <div class="content-wrapper">
   <div class="content-header">
     <div class="container-fluid">
@@ -113,7 +114,6 @@ function badgeStatus($s) {
   <section class="content">
     <div class="container-fluid">
 
-      <!-- Flash message (optional) -->
       <?php if (!empty($_GET['msg'])): ?>
         <div class="mb-2">
           <div class="alert alert-<?= isset($_GET['type']) && $_GET['type']==='danger' ? 'danger' : 'success' ?> mb-0 py-1 px-2 d-inline-block">
@@ -122,7 +122,6 @@ function badgeStatus($s) {
         </div>
       <?php endif; ?>
 
-      <!-- Filter Tabs + Right-aligned New Request button -->
       <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap">
         <ul class="nav nav-pills mb-2 mb-sm-0">
           <?php
@@ -150,7 +149,6 @@ function badgeStatus($s) {
         </a>
       </div>
 
-      <!-- Legend for Priority & Status -->
       <div class="d-flex flex-wrap align-items-center small text-muted mb-2" id="maint-legend">
         <div class="mr-3 mb-1">Priority:
           <?= badgePriority('low') ?> <?= badgePriority('medium') ?> <?= badgePriority('high') ?> <?= badgePriority('critical') ?>
@@ -183,13 +181,14 @@ function badgeStatus($s) {
               </tr>
             </thead>
             <tbody>
-              <?php if ($rows): foreach ($rows as $i => $r): 
+              <?php if ($rows): foreach ($rows as $i => $r):
+                // Check possible actions for the current row
                 $reported = $r['requested_date'] ? date('Y-m-d', strtotime($r['requested_date'])) : '—';
                 $due      = $r['due_date'] ? date('Y-m-d', strtotime($r['due_date'])) : '—';
-                $canStart = in_array($r['status'], ['open']);
-                $canClose = in_array($r['status'], ['open','in_progress']);
+                $canStart = in_array($r['status'], ['open']); // Can start if status is 'open'
+                $canResolve = in_array($r['status'], ['open','in_progress']); // Can resolve if 'open' or 'in_progress'
               ?>
-              <tr class=\"priority-<?= ($r['priority']==='critical' ? 'critical' : 'normal') ?> status-<?= htmlspecialchars($r['status']) ?>\">
+              <tr class="priority-<?= ($r['priority']==='critical' ? 'critical' : 'normal') ?> status-<?= htmlspecialchars($r['status']) ?>">
                 <td><?= $i+1 ?></td>
                 <td><?= htmlspecialchars($r['asset_name'] ?? ('#'.$r['asset_id'])) ?></td>
                 <td><?= htmlspecialchars($r['title'] ?? '-') ?></td>
@@ -201,7 +200,10 @@ function badgeStatus($s) {
                 <td><?= htmlspecialchars($due) ?></td>
                 <td class="text-right">
                   <div class="btn-group btn-group-sm" role="group">
-                    <?php if ($isAdmin && $r['status'] === 'resolved'): ?>
+                    
+                    <?php if ($isAdmin && $r['status'] === 'resolved'):
+                    // Admin-only: Option to 'Close' the request after it has been 'resolved'
+                    ?>
                     <form action="app/action/maintenance_update.php" method="post" class="d-inline" onsubmit="return confirm('Permanently close this request?');">
                       <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
                       <input type="hidden" name="action" value="close">
@@ -210,9 +212,11 @@ function badgeStatus($s) {
                       </button>
                     </form>
                     <?php endif; ?>
+                    
                     <button type="button" class="btn btn-outline-primary btn-sm btn-view" data-id="<?= (int)$r['id'] ?>">
                       <i class="fas fa-eye"></i> View
                     </button>
+                    
                     <form action="app/action/maintenance_update.php" method="post" class="d-inline">
                       <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
                       <input type="hidden" name="action" value="start">
@@ -220,21 +224,25 @@ function badgeStatus($s) {
                         <i class="fas fa-play"></i> Start
                       </button>
                     </form>
-                    <form action="app/action/maintenance_update.php" method="post" class="d-inline" onsubmit="return confirm('Close this request?');">
+                    
+                    <form action="app/action/maintenance_update.php" method="post" class="d-inline" onsubmit="return confirm('Mark this request as resolved?');">
                       <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
                       <input type="hidden" name="action" value="resolve">
-                      <button type="submit" class="btn btn-outline-danger btn-sm" <?= $canClose ? '' : 'disabled' ?>>
+                      <button type="submit" class="btn btn-outline-danger btn-sm" <?= $canResolve ? '' : 'disabled' ?>>
                         <i class="fas fa-check"></i> Resolve
                       </button>
                     </form>
-                    <?php if ($isAdmin): ?>
-<form action="app/action/maintenance_delete.php" method="post" class="d-inline" 
-                          onsubmit="return confirm('Are you sure you want to delete this warranty?');">
+                    
+                    <?php if ($isAdmin):
+                    // Admin-only: Option to Delete the request
+                    ?>
+                    <form action="app/action/maintenance_delete.php" method="post" class="d-inline"
+                          onsubmit="return confirm('Are you sure you want to delete this maintenance request?');">
                       <input type="hidden" name="id" value="<?= $r['id'] ?>">
                       <button type="submit" class="btn btn-outline-danger btn-sm">
                         <i class="fas fa-trash"></i>Delete</button>
                     </form>
-<?php endif; ?>
+                    <?php endif; ?>
                   </div>
                 </td>
               </tr>
@@ -247,10 +255,9 @@ function badgeStatus($s) {
       </div>
 
       <?php if (in_array($status, ['resolved','closed'])): ?>
-<style>.btn-reopen{margin-left:6px}</style>
-<?php endif; ?>
+        <style>.btn-reopen{margin-left:6px}</style>
+      <?php endif; ?>
 
-<!-- View Modal -->
       <div class="modal fade" id="maintViewModal" tabindex="-1" role="dialog" aria-hidden="true">
         <div class="modal-dialog modal-lg" role="document">
           <div class="modal-content">
@@ -319,16 +326,20 @@ function badgeStatus($s) {
 
 <script>
 (function() {
+  // Function to bind the click handler for the 'View' button
   function bindMaintHandlers() {
     if (!window.jQuery || !$.fn || !$.fn.modal) return false;
+    // Unbind previous handler and bind new one
     $(document).off('click.maintView', '.btn-view').on('click.maintView', '.btn-view', function(e){
       e.preventDefault();
       var id = parseInt($(this).data('id'), 10);
       if (!id) return;
       var $modal = $('#maintViewModal');
       var $body  = $('#mv-body');
+      // Show loading state and open modal
       $body.html('<div class="p-3 text-muted">Loading…</div>');
       $modal.modal('show');
+      // Fetch details content via AJAX
       $.get('app/action/maintenance_view.php', { id: id })
         .done(function(html){ $body.html(html || '<div class="alert alert-warning m-3">Empty response.</div>'); })
         .fail(function(xhr){
@@ -339,6 +350,7 @@ function badgeStatus($s) {
     });
     return true;
   }
+  // Attempt to bind handlers immediately, with a fallback interval if jQuery isn't ready
   if (!bindMaintHandlers()) {
     var tries=0, max=20, iv=setInterval(function(){ tries++; if (bindMaintHandlers() || tries>=max) clearInterval(iv); }, 250);
   }

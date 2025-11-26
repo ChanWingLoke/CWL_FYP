@@ -4,7 +4,7 @@ require_once __DIR__ . '/../init.php';
 
 if (!isset($_SESSION['user_id'])) { http_response_code(403); exit('Forbidden'); }
 $isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
-// Keep exports admin-only (remove this gate if you want to open it)
+// Keep exports admin-only
 if (!$isAdmin) { http_response_code(403); exit('Admins only'); }
 
 $pdo = $pdo ?? ($obj->pdo ?? null);
@@ -36,18 +36,15 @@ switch ($module) {
     if ($from) { $where[] = "DATE(p.last_update_at) >= :from"; $params[':from'] = $from; }
     if ($to)   { $where[] = "DATE(p.last_update_at) <= :to";   $params[':to']   = $to;   }
 
-    // Select columns that exist in your schema
+    // Select columns that exist in schema
     $sql = "SELECT
                 p.id                             AS asset_id,
                 p.product_name                   AS product_name,
                 p.product_id                     AS product_code,
                 p.brand_name                     AS brand,
-                p.catagory_name                  AS category,   -- note the spelling in table
+                p.catagory_name                  AS category,
                 p.sku                            AS sku,
                 p.quantity                       AS quantity,
-                -- p.buy_price                      AS buy_price,
-                -- p.sell_price                     AS sell_price,
-                p.last_update_at                 AS last_update,
                 p.added_time                     AS added_time
             FROM products p";
 
@@ -57,7 +54,7 @@ switch ($module) {
     // Column headers for CSV/PDF in the same order as SELECT
     $columns = [
         'Asset ID','Product Name','Product Code','Brand','Category',
-        'SKU','Quantity','Last Update','Added Time'
+        'SKU','Quantity','Added Time'
     ];
 
     // run & fetch
@@ -124,7 +121,7 @@ $stmt = $pdo->prepare($sql);
 $stmt->execute($params);
 $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// --- CSV (always available) ---
+// --- CSV ---
 if ($format === 'csv') {
   $filename = $module . "_export_" . date('Ymd_His') . ".csv";
   header('Content-Type: text/csv; charset=UTF-8');

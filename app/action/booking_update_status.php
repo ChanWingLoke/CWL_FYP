@@ -12,8 +12,6 @@ require_once __DIR__ . '/../../app/init.php';
 if (!isset($_SESSION['user_id'])) {
   header('Location: ../../login.php'); exit;
 }
-// If your app supports role checks, uncomment:
-// if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') { header('Location: ../../index.php'); exit; }
 
 // Get PDO
 $db = null;

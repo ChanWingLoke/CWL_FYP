@@ -1,10 +1,4 @@
 <?php
-/**
- * Fresh Maintenance Module (drop-in)
- * Stack: AdminLTE + jQuery + PDO (via app/init.php loaded by inc/header.php)
- * Routes: index.php?page=maintenance_list, maintenance_request
- * Actions: app/action/maintenance_save.php, maintenance_update.php, maintenance_view.php, maintenance_delete.php
- */
 ?>
 
 <?php

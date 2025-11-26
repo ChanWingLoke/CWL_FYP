@@ -215,13 +215,6 @@ if ($photo !== '') {
       })();
       </script>
 
-      <!-- Mail icon -->
-      <!-- <li class="nav-item">
-        <a class="nav-link" href="index.php?page=inbox" title="Mail">
-          <i class="material-symbols-outlined">mail</i>
-        </a>
-      </li> -->
-
       <!-- Profile Dropdown (dynamic user) -->
       <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle d-flex align-items-center" data-toggle="dropdown" href="#">

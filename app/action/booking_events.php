@@ -32,7 +32,6 @@ try {
 // ----------------------------------------
 // Optional filters from client
 // FullCalendar sends ?start=YYYY-MM-DD&end=YYYY-MM-DD by default
-// We'll also allow ?status=approved|pending|rejected|returned|all
 // ----------------------------------------
 $status = isset($_GET['status']) ? strtolower(trim($_GET['status'])) : 'approved';
 $fcStart = isset($_GET['start']) ? $_GET['start'] : null; // YYYY-MM-DD

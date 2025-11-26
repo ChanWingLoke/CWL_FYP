@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <div class="content-header">
     <div class="container-fluid d-flex justify-content-between align-items-center">
       <h1 class="m-0 text-dark">Add User</h1>
-      <a class="btn btn-sm btn-outline-secondary" href="index.php?page=pages/users_list.php">Back to Users</a>
+      <a class="btn btn-sm btn-outline-secondary" href="index.php?page=users_list">Back to Users</a>
     </div>
   </div>
 
@@ -132,11 +132,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
           </form>
         </div>
-      </div>
-
-      <div class="alert alert-warning mt-3 mb-0">
-        <strong>Note:</strong> Passwords are currently stored with <code>MD5</code> to match the existing login flow.
-        For best security, consider migrating to <code>password_hash()</code> (bcrypt) and verifying with <code>password_verify()</code>.
       </div>
     </div>
   </section>

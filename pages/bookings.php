@@ -1,9 +1,6 @@
 <?php
 // pages/bookings.php
 
-// -------------------------------
-// Get a PDO handle used by the app
-// -------------------------------
 $db = null;
 if (isset($pdo) && $pdo) {
   $db = $pdo;
@@ -34,21 +31,30 @@ $flash = ['type' => null, 'msg' => null];
 // --------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['do_booking'])) {
   try {
+    // 1. Input Retrieval
     $asset_id  = (int)($_POST['asset_id'] ?? 0);
     $user_id   = (int)($_POST['user_id'] ?? 0);
-    $expected_user_id = (int)($_POST['expected_user_id'] ?? 0);
-    if ($expected_user_id && $expected_user_id !== $user_id) {
-      throw new Exception('Scanned ID does not match the selected user.');
-    }
+    $expected_user_id = (int)($_POST['expected_user_id'] ?? 0); // From JavaScript/Scan logic
     $start_raw = trim($_POST['start_time'] ?? '');
     $end_raw   = trim($_POST['end_time'] ?? '');
     $notes     = trim($_POST['notes'] ?? '');
 
+    // 2. Core Validation
+    if (!$asset_id || !$user_id) {
+      throw new Exception('Please select both an asset and a user.');
+    }
+    // Check if the scanned ID (if provided) matches the selected user ID
+    if ($expected_user_id && $expected_user_id !== $user_id) {
+      throw new Exception('Scanned ID does not match the selected user.');
+    }
+
+    // 3. Date Validation (Format and Validity)
     $re = '/^\d{4}-\d{2}-\d{2}$/';
     if (!preg_match($re, $start_raw) || !preg_match($re, $end_raw)) {
       throw new Exception('Dates must use format YYYY-MM-DD (e.g., 2025-06-07).');
     }
 
+    // Check if dates are real calendar dates (e.g., prevents 2025-02-30)
     $valid_date = function (string $s): bool {
       [$y,$m,$d] = array_map('intval', explode('-', $s));
       return checkdate($m, $d, $y);
@@ -57,19 +63,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['do_booking'])) {
       throw new Exception('One or both dates are not valid calendar dates.');
     }
 
+    // Set precise boundaries for DB conflict checking (start of start day, end of end day)
     $start = $start_raw . ' 00:00:00';
     $end   = $end_raw   . ' 23:59:59';
 
-    if (!$asset_id || !$user_id) {
-      throw new Exception('Please select both an asset and a user.');
-    }
     if ($start >= $end) {
       throw new Exception('End date must be after start date.');
     }
 
-    // Block booking if asset has active maintenance (open, in_progress, resolved)
-    $blockStatuses = ['open','in_progress','resolved']; // per your rule
-    $ph = implode(',', array_fill(0, count($blockStatuses), '?'));
+    // 4. Maintenance Conflict Check
+    $blockStatuses = ['open','in_progress','resolved']; // Maintenance statuses that block booking
+    $ph = implode(',', array_fill(0, count($blockStatuses), '?')); // Placeholder string (?, ?, ?)
 
     $msql = "SELECT 1
             FROM maintenance_orders
@@ -78,25 +82,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['do_booking'])) {
             LIMIT 1";
     $mstmt = $db->prepare($msql);
     $mstmt->execute(array_merge([$asset_id], $blockStatuses));
+
     if ($mstmt->fetchColumn()) {
       throw new Exception('This asset is currently under maintenance and cannot be booked until the maintenance is closed.');
     }
 
-    // Conflict check stays as a backstop
+    // 5. Booking Conflict Check
     $sql = "SELECT COUNT(*) FROM bookings
             WHERE asset_id = :asset_id
               AND status IN ('pending','approved')
-              AND start_time <= :end_time AND end_time >= :start_time";
+              AND start_time <= :end_time AND end_time >= :start_time"; // Date range overlap logic
     $stmt = $db->prepare($sql);
     $stmt->execute([
       ':asset_id'   => $asset_id,
       ':start_time' => $start,
       ':end_time'   => $end
     ]);
+
     if ((int)$stmt->fetchColumn() > 0) {
       throw new Exception('This asset is already booked for the selected date range.');
     }
 
+    // 6. Insertion
     $ins = $db->prepare("INSERT INTO bookings (asset_id, user_id, start_time, end_time, notes, status)
                          VALUES (:asset_id, :user_id, :start_time, :end_time, :notes, 'pending')");
     $ins->execute([
@@ -117,16 +124,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['do_booking'])) {
 // Preload selects and list
 // -------------------------
 try {
+  // Fetch list of assets for the dropdown
   $assets = $db->query("SELECT id, product_name FROM `{$productTable}` ORDER BY product_name ASC")
                ->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) { $assets = []; $flash = ['type'=>'danger','msg'=>'DB error: '.$e->getMessage()]; }
 
 try {
+  // Fetch list of users for the dropdown
   $users  = $db->query("SELECT id, username FROM user ORDER BY username ASC")
                ->fetchAll(PDO::FETCH_ASSOC);
 } catch (Throwable $e) { $users = []; $flash = ['type'=>'danger','msg'=>'DB error: '.$e->getMessage()]; }
 
 try {
+  // Fetch upcoming bookings list (used in the table on the left)
   $upcoming = $db->query("
     SELECT b.id, b.asset_id, b.user_id, b.start_time, b.end_time, b.status, b.notes,
            p.product_name AS asset_name,
@@ -167,17 +177,12 @@ try {
     <div class="container-fluid">
       <div class="row">
 
-        <!-- Calendar Card -->
         <div class="col-12">
           <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
               <h3 class="card-title mb-0"><b>Bookings Calendar</b></h3>
               <div class="status-legend">
-                <!-- <span class="badge-status pending">Pending</span>
-                <span class="badge-status approved">Approved</span>
-                <span class="badge-status rejected">Rejected</span>
-                <span class="badge-status returned">Returned</span> -->
-              </div>
+                </div>
             </div>
             <div class="card-body">
               <div id="calendar"></div>
@@ -185,7 +190,6 @@ try {
           </div>
         </div>
 
-        <!-- Event detail modal -->
         <div class="modal fade" id="bookingModal" tabindex="-1" role="dialog" aria-hidden="true">
           <div class="modal-dialog modal-md modal-dialog-centered" role="document">
             <div class="modal-content">
@@ -196,7 +200,7 @@ try {
                   <span aria-hidden="true">&times;</span>
                 </button>
               </div>
-              <div class="modal-body" id="bookingModalBody"><!-- filled by JS --></div>
+              <div class="modal-body" id="bookingModalBody"></div>
               <div class="modal-footer py-2">
                 <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
               </div>
@@ -204,7 +208,6 @@ try {
           </div>
         </div>
 
-        <!-- Left: Upcoming Reservations -->
         <div class="col-lg-8">
           <div class="card">
             <div class="card-header d-flex align-items-center">
@@ -233,6 +236,7 @@ try {
                         <td><?= htmlspecialchars(date('Y-m-d', strtotime($r['end_time']))) ?></td>
                         <td>
                           <?php
+                            // Logic to determine the correct badge color based on status
                             $cls = [
                               'pending'  => 'badge-warning',
                               'approved' => 'badge-success',
@@ -253,7 +257,6 @@ try {
           </div>
         </div>
 
-        <!-- Right: Booking Form -->
         <div class="col-lg-4">
           <div class="card">
             <div class="card-header">
@@ -262,8 +265,7 @@ try {
             <div class="card-body">
               <form method="post" autocomplete="off" id="booking-form">
                 <input type="hidden" name="do_booking" value="1">
-                <input type="hidden" name="expected_user_id" value="">
-                <div class="form-group">
+                <input type="hidden" name="expected_user_id" value=""> <div class="form-group">
                   <label>Asset</label>
                   <select name="asset_id" class="form-control select2" required>
                     <option value="">Select asset</option>
@@ -283,7 +285,6 @@ try {
                   </select>
                 </div>
 
-                <!-- DATEPICKER RANGE (mini calendar, YYYY-MM-DD) -->
                 <div class="form-group">
                   <label>Date</label>
                   <div class="input-daterange input-group" id="bookingDatepicker">
@@ -329,12 +330,12 @@ try {
           </div>
         </div>
 
-      </div><!-- /.row -->
-    </div>
+      </div></div>
   </section>
 </div>
 
 <style>
+/* CSS for status badges */
 .badge-status {
   font-size: 0.9rem;
   font-weight: 600;
@@ -351,11 +352,9 @@ try {
 .badge-status.returned { background-color: #6c757d; } /* grey */
 </style>
 
-<!-- FullCalendar CSS/JS -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 
-<!-- Calendar init (loads events from your PHP endpoint) -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   var el = document.getElementById('calendar');
@@ -373,8 +372,10 @@ document.addEventListener('DOMContentLoaded', function() {
       right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
     },
     events: {
+      // Endpoint that serves booking data
       url: 'app/action/booking_events.php',
-      extraParams: { status: 'approved' },
+      // By default, only show approved bookings on the calendar
+      extraParams: { status: 'approved' }, 
       failure: function() {
         el.insertAdjacentHTML('beforeend','<div class="text-danger mt-2">Could not load bookings.</div>');
       }
@@ -384,28 +385,30 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<!-- jQuery-safe initializer (Select2 + Datepicker just like Warranty) -->
 <script>
 window.addEventListener('load', function () {
   if (!window.jQuery) return;
 
-  // Select2, if present
+  // Select2, if present (for Asset and User dropdowns)
   if ($.fn.select2) {
     $('.select2').select2();
   }
 
   // Datepickers (YYYY-MM-DD) with simple range constraints
   if ($.fn.datepicker) {
+    // Re-initialize datepicker to ensure consistent settings
     $('.datepicker').datepicker('destroy').datepicker({
       format: 'yyyy-mm-dd',
       autoclose: true,
       todayHighlight: true
     });
 
+    // Enforce Start Date <= End Date logic
     $('#start_time').on('changeDate', function (e) {
       $('#end_time').datepicker('setStartDate', e.date);
       var s = $('#start_time').val();
       var eVal = $('#end_time').val();
+      // Clear end date if it becomes chronologically invalid
       if (eVal && eVal < s) { $('#end_time').val(''); }
     });
     $('#end_time').on('changeDate', function (e) {
@@ -416,7 +419,6 @@ window.addEventListener('load', function () {
 </script>
 
 
-<!-- Barcode Scan Modal -->
 <div class="modal fade" id="scanUserModal" tabindex="-1" role="dialog" aria-labelledby="scanUserModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-sm" role="document">
     <div class="modal-content">
@@ -449,6 +451,7 @@ window.addEventListener('load', function () {
 
   function init() {
     var form = document.getElementById('booking-form');
+    // Fallback to find the form if ID is missing (less reliable)
     if (!form) {
       var forms = document.getElementsByTagName('form');
       for (var i=0;i<forms.length;i++) {
@@ -457,15 +460,8 @@ window.addEventListener('load', function () {
     }
     if (!form) return;
 
+    // Ensure necessary hidden fields exist for the scanning process
     var userSelect = form.querySelector('select[name="user_id"]');
-    var userHidden = form.querySelector('input[name="user_id"]');
-    if (!userSelect && !userHidden) {
-      userHidden = document.createElement('input');
-      userHidden.type = 'hidden';
-      userHidden.name = 'user_id';
-      form.appendChild(userHidden);
-    }
-
     var expectedHidden = form.querySelector('input[name="expected_user_id"]');
     if (!expectedHidden) {
       expectedHidden = document.createElement('input');
@@ -474,57 +470,49 @@ window.addEventListener('load', function () {
       form.appendChild(expectedHidden);
     }
 
-    if (!form.querySelector('input[name="do_booking"]')) {
-      var doHidden = document.createElement('input');
-      doHidden.type = 'hidden';
-      doHidden.name = 'do_booking';
-      doHidden.value = '1';
-      form.appendChild(doHidden);
-    }
-
     form.addEventListener('submit', function(e) {
+      // Check if the confirmation flag is set (meaning scan succeeded)
       if (!form.__scanConfirmed) {
-        e.preventDefault();
+        e.preventDefault(); // Stop default submission
 
-        var selectedVal = '';
-        if (userSelect) selectedVal = (userSelect.value || '').trim();
+        // Store the currently selected user ID before scanning
+        var selectedVal = userSelect ? (userSelect.value || '').trim() : '';
         expectedHidden.value = selectedVal;
 
+        // Open the modal and pass a callback function to run on successful scan
         openScanModal(function(scannedId, detach) {
+          // 1. Re-check: Does the scanned ID match the previously selected user? (If selected, it must match)
           var selectedNow = userSelect ? (userSelect.value || '').trim() : expectedHidden.value;
           if (selectedNow && String(scannedId) !== String(selectedNow)) {
             showScanError('Scanned ID does not match the selected user.');
-            return; // user can re-scan
+            return; // Stay in modal for re-scan
           }
 
+          // 2. Validate/Set User ID
           var ok = false;
           if (userSelect) {
+            // Check if the scanned ID exists in the dropdown options
             for (var i=0; i<userSelect.options.length; i++) {
               if (String(userSelect.options[i].value) === String(scannedId)) {
-                userSelect.value = scannedId; ok = true; break;
+                userSelect.value = scannedId; 
+                ok = true; 
+                if ($.fn.select2) $(userSelect).trigger('change');
+                break;
               }
             }
           }
-          if (!ok) {
-            if (!userHidden) {
-              userHidden = document.createElement('input');
-              userHidden.type = 'hidden';
-              userHidden.name = 'user_id';
-              form.appendChild(userHidden);
-            }
-            userHidden.value = scannedId;
-            if (userSelect && userSelect.required) userSelect.disabled = true;
-          }
-
-          form.__scanConfirmed = true;
-          form.noValidate = true;
-          detach();
+          
+          // 3. Confirm and Submit
+          form.__scanConfirmed = true; // Set flag to allow submission next time
+          form.noValidate = true;     // Disable HTML5 validation on resubmit
+          detach();                   // Remove the keydown listener
           hideScanModal();
-          form.submit();
+          form.submit();              // Programmatically submit the form
         });
       }
     });
 
+    // Prevent direct button clicks from bypassing the submit handler
     var submitBtns = form.querySelectorAll('button[type="submit"],input[type="submit"]');
     for (var i=0;i<submitBtns.length;i++) {
       submitBtns[i].addEventListener('click', function(ev) {
@@ -533,6 +521,7 @@ window.addEventListener('load', function () {
     }
   }
 
+  // --- Modal Control Functions ---
   function openScanModal(onDone) {
     var modal = document.getElementById('scanUserModal');
     var err = document.getElementById('scanError');
@@ -547,14 +536,16 @@ window.addEventListener('load', function () {
       else { modal.style.display = 'none'; modal.classList.remove('show'); }
     }
 
+    // Barcode Listener Logic
     var buffer = '';
     var lastTs = 0;
-    var timeoutMs = 100;
+    var timeoutMs = 100; // Time window to capture sequential keystrokes
 
     function keyHandler(ev) {
       if (ev.key === 'Shift' || ev.key === 'Alt' || ev.key === 'Control') return;
       var now = Date.now();
-      if (now - lastTs > timeoutMs) buffer = '';
+      // Reset buffer if keystroke delay exceeds timeout (scanner sends rapid input)
+      if (now - lastTs > timeoutMs) buffer = ''; 
       lastTs = now;
 
       if (ev.key === 'Enter') {
@@ -562,10 +553,10 @@ window.addEventListener('load', function () {
         var value = buffer.trim();
         buffer = '';
         if (!value) { showScanError('No data received. Please scan again.'); return; }
-        onDone(value, detach);
+        onDone(value, detach); // Execute callback with scanned value
         return;
       }
-      if (ev.key && ev.key.length === 1) buffer += ev.key;
+      if (ev.key && ev.key.length === 1) buffer += ev.key; // Accumulate keystrokes
     }
 
     function detach() { window.removeEventListener('keydown', keyHandler, true); }
@@ -574,9 +565,11 @@ window.addEventListener('load', function () {
       if (e) { e.textContent = msg; e.classList.remove('d-none'); }
     }
 
+    // Start listening for barcode input (high priority capture: true)
     window.addEventListener('keydown', keyHandler, true);
     show();
 
+    // Export helpers for use outside the modal logic
     window.hideScanModal = hide;
     window.showScanError = showScanError;
   }

@@ -1,19 +1,21 @@
 <?php
 // pages/bookings_requests.php
-// Guard
+
+// Guard: Ensure user is logged in
 if (!isset($_SESSION['user_id'])) { header('Location: login.php'); exit; }
 
+// --- 1. Database Connection and Setup ---
 $db = null;
 if (isset($pdo) && $pdo) { $db = $pdo; }
 elseif (isset($obj) && isset($obj->pdo)) { $db = $obj->pdo; }
 if (!$db) { die('<div class="alert alert-danger m-3">No DB connection.</div>'); }
 
-// Detect product table
+// Detect product table (supports dynamic table name)
 $productTable = 'product';
 try { $db->query("SELECT 1 FROM `product` LIMIT 1"); }
 catch (Throwable $e) { foreach (['products','tbl_product','items','assets'] as $t) { try { $db->query("SELECT 1 FROM `{$t}` LIMIT 1"); $productTable=$t; break; } catch(Throwable $ignore){} } }
 
-// Fetch pending
+// --- 2. Fetch Pending Bookings ---
 $sql = "
   SELECT b.id, b.start_time, b.end_time, b.notes, u.username, p.product_name
   FROM bookings b
@@ -26,8 +28,10 @@ $rows = $db->query($sql)->fetchAll(PDO::FETCH_ASSOC);
 
 $flashMsg = $_GET['msg'] ?? null;
 $flashType = $_GET['type'] ?? 'info';
+
+// Determine if the current user is an admin
+$isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin';
 ?>
-<?php $isAdmin = isset($_SESSION['user_role']) && strtolower($_SESSION['user_role']) === 'admin'; ?>
 
 <div class="content-wrapper">
   <div class="content-header">
@@ -74,26 +78,26 @@ $flashType = $_GET['type'] ?? 'info';
                   <td><?= htmlspecialchars($r['notes'] ?? '') ?></td>
                   <td class="text-right">
                     <?php if ($isAdmin): ?>
-<form action="app/action/booking_update_status.php" method="post" class="d-inline">
-                      <input type="hidden" name="id" value="<?= (int)$rows[$i]['id'] ?>">
-                      <input type="hidden" name="action" value="approve">
-                      <input type="hidden" name="back" value="bookings_requests">
-                      <button class="btn btn-sm btn-success" onclick="return confirm('Approve this booking?')">
-                        <i class="fas fa-check"></i> Approve
-                      </button>
-                    </form>
-                    <form action="app/action/booking_update_status.php" method="post" class="d-inline">
-                      <input type="hidden" name="id" value="<?= (int)$rows[$i]['id'] ?>">
-                      <input type="hidden" name="action" value="reject">
-                      <input type="hidden" name="back" value="bookings_requests">
-                      <button class="btn btn-sm btn-danger" onclick="return confirm('Reject this booking?')">
-                        <i class="fas fa-times"></i> Reject
-                      </button>
-                    </form>
-                  
-<?php else: ?>
-  <span class="text-muted small">Awaiting admin approval</span>
-<?php endif; ?></td>
+                      <form action="app/action/booking_update_status.php" method="post" class="d-inline">
+                        <input type="hidden" name="id" value="<?= (int)$rows[$i]['id'] ?>">
+                        <input type="hidden" name="action" value="approve">
+                        <input type="hidden" name="back" value="bookings_requests"> 
+                        <button class="btn btn-sm btn-success" onclick="return confirm('Approve this booking?')">
+                          <i class="fas fa-check"></i> Approve
+                        </button>
+                      </form>
+                      <form action="app/action/booking_update_status.php" method="post" class="d-inline">
+                        <input type="hidden" name="id" value="<?= (int)$rows[$i]['id'] ?>">
+                        <input type="hidden" name="action" value="reject">
+                        <input type="hidden" name="back" value="bookings_requests">
+                        <button class="btn btn-sm btn-danger" onclick="return confirm('Reject this booking?')">
+                          <i class="fas fa-times"></i> Reject
+                        </button>
+                      </form>
+                    <?php else: ?>
+                      <span class="text-muted small">Awaiting admin approval</span>
+                    <?php endif; ?>
+                  </td>
                 </tr>
               <?php endforeach; else: ?>
                 <tr><td colspan="7" class="text-center text-muted">No pending requests.</td></tr>

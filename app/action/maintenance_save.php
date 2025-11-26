@@ -1,13 +1,4 @@
 <?php
-/**
- * Fresh Maintenance Module (drop-in)
- * Stack: AdminLTE + jQuery + PDO (via app/init.php loaded by inc/header.php)
- * Routes: index.php?page=maintenance_list, maintenance_request
- * Actions: app/action/maintenance_save.php, maintenance_update.php, maintenance_view.php, maintenance_delete.php
- */
-?>
-
-<?php
 require_once __DIR__ . '/../../app/init.php';
 if (!isset($_SESSION['user_id'])) { header('Location: ../../login.php'); exit; }
 
