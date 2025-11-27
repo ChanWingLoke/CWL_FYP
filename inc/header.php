@@ -168,7 +168,7 @@ if ($photo !== '') {
     <!-- Right navbar links -->
     <ul class="navbar-nav ml-auto align-items-center">
       <!-- Keep Google Translate -->
-      <div id="google_translate_element"></div>
+      <!-- <div id="google_translate_element"></div> -->
 
       <!-- Notification icon -->
       <li class="nav-item dropdown" id="notifDropdown">

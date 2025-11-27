@@ -167,7 +167,7 @@ $(document).on("click", "#productDelete_btn", function(e) {
 $(document).on("click", "#ex_catagoryDelete_btn", function(e) {
     e.preventDefault();
     $delete_id = $(this).data("id");
-    if (confirm("Are You sure want to delete this item?")) {
+    if (confirm("Are you sure want to delete this item?")) {
         $.post("app/action/delete_exCaragroy.php", {
             delete_id: $delete_id,
             delete_data: "delete_data"
